@@ -198,7 +198,7 @@ const HomeHero = ({onGetStarted}) => {
               <button 
                 onClick={onGetStarted}
                 className="bg-white text-[#e72208] px-8 py-3 rounded-full text-lg font-medium hover:bg-gray-100 transition-colors shadow-md"
-              >
+                >
                 Get Started
               </button>
               <button className="bg-transparent text-white border border-white px-8 py-3 rounded-full text-lg font-medium hover:bg-white hover:bg-opacity-10 transition-colors">

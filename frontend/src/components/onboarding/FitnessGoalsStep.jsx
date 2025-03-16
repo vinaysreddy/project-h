@@ -9,9 +9,8 @@ const FitnessGoalsStep = ({ formData, handleInputChange }) => {
                 {[
                   '🔥 Lose Weight (Fat Loss)',
                   '💪 Gain Muscle (Muscle Building & Hypertrophy)',
-                  '⚖️ Maintain Weight & Improve Body Composition',
-                  '🏋️ Build Strength (Increase Power & Strength)',
                   '🏃 Improve Endurance & Cardiovascular Health',
+                  '⚖️ Maintain Weight & Improve Body Composition',
                   '🌱 General Wellness & Energy Boost'
                 ].map(goal => (
                   <label 
