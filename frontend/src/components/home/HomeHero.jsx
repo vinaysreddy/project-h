@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import LoginButton from '../common/LoginButton';
+import { useAuth } from '../../context/AuthContext';
 
-const HomeHero = ({onGetStarted}) => {
+const HomeHero = ({ onGetStarted, onLoginSuccess }) => {
   const [animate, setAnimate] = useState(false);
   
   useEffect(() => {
@@ -58,9 +60,11 @@ const HomeHero = ({onGetStarted}) => {
         <nav className="flex justify-between items-center py-4 px-6 md:px-16 bg-white bg-opacity-90 shadow-sm">
           <div className="font-bold text-2xl">FitSync</div>
           <div className="flex gap-4">
-            <button className="px-5 py-2 rounded-full text-gray-700 border border-gray-300 hover:bg-gray-100 transition-colors">
-              Sign In
-            </button>
+            <LoginButton 
+              onLoginSuccess={onLoginSuccess} 
+              variant="outline"
+              className="px-5 py-2"
+            />
             <button 
               onClick={onGetStarted}
               className="px-5 py-2 rounded-full bg-[#e72208] text-white hover:bg-opacity-90 transition-colors"
@@ -97,9 +101,11 @@ const HomeHero = ({onGetStarted}) => {
                 >
                   Get Started
                 </button>
-                <button className="bg-white text-gray-700 border border-gray-300 px-8 py-3 rounded-full text-lg font-medium hover:bg-gray-50 transition-colors shadow-sm">
-                  Sign In
-                </button>
+                <LoginButton 
+                  onLoginSuccess={onLoginSuccess} 
+                  variant="outline"
+                  className="px-8 py-3 rounded-full text-lg font-medium shadow-sm"
+                />
               </div>
             </div>
           </div>
