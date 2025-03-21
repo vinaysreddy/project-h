@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import HomeHero from '../components/home/HomeHero';
-import OnboardingForm from '../components/onboarding/OnboardingForm';
-import Dashboard from '../components/dashboard/Dashboard';
+import HomeHero from './HomeHero';
+import OnboardingForm from '../onboarding/OnboardingForm';
+import Dashboard from '../dashboard/Dashboard';
 
 const Home = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
