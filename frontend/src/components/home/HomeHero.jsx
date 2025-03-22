@@ -122,67 +122,6 @@ const HomeHero = ({onGetStarted}) => {
           </div>
         </section>
 
-        {/* How It Works - Simplified steps with connected design */}
-        <section className="py-16 px-4 md:px-16 bg-gradient-to-b from-white to-gray-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Three Simple Steps</h2>
-            
-            <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-              {/* Connecting line for desktop */}
-              <div className="hidden md:block absolute top-8 left-1/6 right-1/6 h-0.5 bg-gradient-to-r from-[#e72208] via-[#3E7B27] to-[#4D55CC]"></div>
-              
-              <div className="flex flex-col items-center relative">
-                <div className="w-16 h-16 rounded-full bg-[#e72208] text-white flex items-center justify-center text-xl font-bold mb-4 shadow-md z-10">1</div>
-                <h3 className="text-lg font-bold mb-2">Sign Up</h3>
-                <p className="text-gray-600">Create your account and tell us about yourself</p>
-              </div>
-              
-              <div className="flex flex-col items-center relative">
-                <div className="w-16 h-16 rounded-full bg-[#3E7B27] text-white flex items-center justify-center text-xl font-bold mb-4 shadow-md z-10">2</div>
-                <h3 className="text-lg font-bold mb-2">Connect</h3>
-                <p className="text-gray-600">Link your devices for personalized insights</p>
-              </div>
-              
-              <div className="flex flex-col items-center relative">
-                <div className="w-16 h-16 rounded-full bg-[#4D55CC] text-white flex items-center justify-center text-xl font-bold mb-4 shadow-md z-10">3</div>
-                <h3 className="text-lg font-bold mb-2">Improve</h3>
-                <p className="text-gray-600">Follow your simple, personalized health plan</p>
-              </div>
-            </div>
-            
-            <div className="mt-12 text-center">
-              <button 
-                onClick={onGetStarted}
-                className="bg-[#e72208] text-white px-8 py-3 rounded-full text-lg font-medium hover:bg-opacity-90 transition-colors shadow-md"
-              >
-                Get Started Now
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Testimonial Section - with color accent */}
-        <section className="py-16 px-4 md:px-16 bg-white bg-opacity-95">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-10">Real Results, Real People</h2>
-            
-            <div className="bg-white p-8 rounded-xl shadow-md relative">
-              {/* Color accents */}
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#e72208] via-[#3E7B27] to-[#4D55CC]"></div>
-              
-              <div className="mb-6">
-                <div className="w-20 h-20 rounded-full bg-gray-200 mx-auto border-4 border-white shadow-md"></div>
-              </div>
-              <p className="text-lg mb-6 italic">
-                "I never thought fitness could be this accessible. FitSync makes it easy to understand my body 
-                and what it needs. No complicated routines - just simple, effective guidance."
-              </p>
-              <p className="font-bold">Sarah T.</p>
-              <p className="text-sm text-gray-600">Using FitSync for 6 months</p>
-            </div>
-          </div>
-        </section>
-
         {/* CTA Section - with layered background */}
         <section className="py-16 px-4 md:px-16 relative overflow-hidden">
           {/* Layered background with all three colors */}
