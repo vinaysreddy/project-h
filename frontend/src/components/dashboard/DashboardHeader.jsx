@@ -114,23 +114,6 @@ const DashboardHeader = ({ userData, healthMetrics }) => {
                 </p>
               )}
             </div>
-            
-            {isTypingComplete && (
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button className="text-sm px-4 py-2 bg-[#3E7B27] text-white rounded-full hover:bg-opacity-90 transition-colors flex items-center">
-                  <Apple className="mr-1.5 h-4 w-4" />
-                  Create Diet Plan <ChevronRight className="ml-1 h-4 w-4" />
-                </button>
-                <button className="text-sm px-4 py-2 bg-[#e72208] text-white rounded-full hover:bg-opacity-90 transition-colors flex items-center">
-                  <Dumbbell className="mr-1.5 h-4 w-4" />
-                  Start Workout <ChevronRight className="ml-1 h-4 w-4" />
-                </button>
-                <button className="text-sm px-4 py-2 bg-[#4D55CC] text-white rounded-full hover:bg-opacity-90 transition-colors flex items-center">
-                  <Moon className="mr-1.5 h-4 w-4" />
-                  Sleep Tracker <ChevronRight className="ml-1 h-4 w-4" />
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </Card>

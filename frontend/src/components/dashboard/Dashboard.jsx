@@ -8,7 +8,6 @@ import OverviewTab from './OverviewTab';
 
 const Dashboard = ({ formData }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [projectedWeightData, setProjectedWeightData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [healthMetrics, setHealthMetrics] = useState({});
 
@@ -35,12 +34,6 @@ const Dashboard = ({ formData }) => {
         const tdee = calculations.calculateTDEE(bmr, formData.activityLevel);
         const calorieTarget = calculations.calculateCalorieTarget(tdee, formData.primaryGoal);
         const macros = calculations.calculateMacros(calorieTarget, formData.primaryGoal);
-        const waterIntake = calculations.calculateWaterIntake(formData.weight, formData.weightUnit, formData.activityLevel);
-        const healthyWeightRange = calculations.calculateHealthyWeightRange(formData.height, formData.heightUnit);
-        const successProbability = calculations.calculateSuccessProbability(formData);
-        const cardioZones = calculations.calculateCardioZones(formData.dateOfBirth);
-        const sleepRecommendation = calculations.calculateSleepRecommendation(formData.dateOfBirth, formData.activityLevel);
-        const workoutRecommendation = calculations.getWorkoutRecommendation(formData.primaryGoal, formData.weeklyExercise, formData.healthConditions);
         
         // Get BMI category and color
         const { category: bmiCategory, color: bmiColor } = calculations.getBMICategory(bmi);
@@ -50,29 +43,13 @@ const Dashboard = ({ formData }) => {
           bmi,
           bmiCategory,
           bmiColor,
-          healthyWeightRange,
           weightUnit: formData.weightUnit,
           calorieTarget,
           tdee,
           bmr,
-          waterIntake,
-          macros,
-          sleepRecommendation,
-          successProbability,
-          cardioZones,
-          workoutRecommendation
+          macros     
         });
 
-        // Generate projected weight data
-        if (formData.targetWeight) {
-          const weightData = calculations.generateWeightProjection(
-            formData.weight,
-            formData.targetWeight,
-            formData.primaryGoal,
-            formData.weightUnit
-          );
-          setProjectedWeightData(weightData);
-        }
       } catch (error) {
         console.error("Error calculating health metrics:", error);
       }
@@ -159,8 +136,6 @@ const Dashboard = ({ formData }) => {
               <OverviewTab 
                 userData={formData || {}} 
                 healthMetrics={healthMetrics} 
-                projectedWeightData={projectedWeightData}
-                workoutRecommendation={healthMetrics.workoutRecommendation || {}}
               />
             </TabsContent>
             
@@ -200,7 +175,6 @@ const Dashboard = ({ formData }) => {
         )}
       </Tabs>
       
-      {/* New Dashboard Footer with Waitlist Call-to-Action */}
       <DashboardFooter />
     </div>
   );
