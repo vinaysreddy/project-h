@@ -5,9 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Dumbbell, 
   Apple, 
-  Scale, 
-  Goal, 
-  Zap, 
+  Scale,  
   CalendarClock, 
   Info, 
   PlusCircle,
@@ -19,7 +17,7 @@ import {
 const OverviewTab = ({ userData = {}, healthMetrics = {}, projectedWeightData = [], workoutRecommendation = {} }) => {
   // Destructure with default values to prevent errors
   const { 
-    bmi = 0, 
+    bmi = 0,
     bmiCategory = 'Unknown', 
     calorieTarget = 2000,
     successProbability = 0.75,

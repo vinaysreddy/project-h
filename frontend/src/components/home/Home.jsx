@@ -37,7 +37,7 @@ const Home = () => {
   if (!showOnboarding) {
     return <HomeHero onGetStarted={handleGetStarted} />;
   }
-
+  
   return (
     <OnboardingForm 
       formData={formData} 
