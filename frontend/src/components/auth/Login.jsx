@@ -13,6 +13,26 @@ const Login = ({ onLoginSuccess, formData }) => {
       setError('');
       const { token, user } = await signInWithGoogle();
       
+      // Map your formData to match the expected backend format
+      const backendData = {
+        questionnaireData: {
+          dob: formData.dateOfBirth,
+          gender: formData.gender.toLowerCase(),
+          height_in_cm: formData.heightUnit === 'cm' ? 
+            parseInt(formData.height) : 
+            Math.round(parseInt(formData.height) * 2.54),
+          weight_in_kg: formData.weightUnit === 'kg' ? 
+            parseInt(formData.weight) : 
+            Math.round(parseInt(formData.weight) / 2.205),
+          primary_fitness_goal: formData.primaryGoal,
+          target_weight: parseInt(formData.targetWeight || '0'),
+          daily_activity_level: formData.activityLevel,
+          exercise_availability: formData.weeklyExercise,
+          health_conditions: formData.healthConditions,
+          other_medical_conditions: formData.otherCondition
+        }
+      };
+
       // Send user data and token to backend
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -21,7 +41,7 @@ const Login = ({ onLoginSuccess, formData }) => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          userData: formData,
+          ...backendData,
           email: user.email,
           displayName: user.displayName,
           photoURL: user.photoURL,

@@ -1,12 +1,11 @@
-//Auth Context to manage authentication state
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import { auth } from '../firebase/config';
 import { 
   GoogleAuthProvider, 
   signInWithPopup, 
   onAuthStateChanged, 
   signOut 
 } from 'firebase/auth';
-import { auth } from '../firebase/config';
 
 const AuthContext = createContext();
 
@@ -17,32 +16,31 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [authToken, setAuthToken] = useState(null);
 
-  function signInWithGoogle() {
+  // Sign in with Google
+  async function signInWithGoogle() {
     const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider)
-      .then(async (result) => {
-        // Get auth token for backend
-        const token = await result.user.getIdToken();
-        setAuthToken(token);
-        return { user: result.user, token };
-      });
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      // Get the ID token
+      const token = await user.getIdToken();
+      return { token, user };
+    } catch (error) {
+      console.error("Error signing in with Google:", error);
+      throw error;
+    }
   }
 
+  // Sign out
   function logout() {
-    setAuthToken(null);
     return signOut(auth);
   }
 
+  // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      if (user) {
-        // Update token when auth state changes
-        const token = await user.getIdToken();
-        setAuthToken(token);
-      }
       setLoading(false);
     });
 
@@ -51,10 +49,8 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
-    authToken,
     signInWithGoogle,
-    logout,
-    loading
+    logout
   };
 
   return (
