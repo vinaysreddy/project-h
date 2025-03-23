@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, UtensilsCrossed, LineChart, Layout } from 'lucide-react';
 import OverviewTab from './OverviewTab';
 import NutritionTab from '../nutrition/NutritionCard';
+import WorkoutTab from '../fitness/WorkoutTab';
 
 const Dashboard = ({ formData }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -105,19 +106,7 @@ const Dashboard = ({ formData }) => {
             >
               <Activity className="h-4 w-4 mr-2" />
               Fitness
-            </TabsTrigger>
-            
-            <TabsTrigger 
-              value="progress" 
-              className={`flex items-center pb-2 px-4 border-b-2 transition-colors ${
-                activeTab === 'progress' 
-                  ? 'border-gray-800 text-gray-800 font-medium' 
-                  : 'border-transparent hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <LineChart className="h-4 w-4 mr-2" />
-              Progress
-            </TabsTrigger>
+            </TabsTrigger>  
           </TabsList>
         </div>
 
@@ -147,14 +136,10 @@ const Dashboard = ({ formData }) => {
             </TabsContent>
             
             <TabsContent value="fitness" className="animate-in fade-in-50 duration-300">
-              {/* Improved placeholder */}
-              <div className="text-center p-12 border border-dashed rounded-lg">
-                <Activity className="h-12 w-12 mx-auto text-[#e72208] opacity-30 mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">Fitness Plan Coming Soon</h3>
-                <p className="text-gray-500 max-w-md mx-auto">
-                  Your custom workout routines are being created based on your fitness level and goals. Check back soon!
-                </p>
-              </div>
+              <WorkoutTab
+                userData={formData || {}}
+                healthMetrics={healthMetrics}
+              />
             </TabsContent>
             
             <TabsContent value="progress" className="animate-in fade-in-50 duration-300">
@@ -170,8 +155,6 @@ const Dashboard = ({ formData }) => {
           </>
         )}
       </Tabs>
-      
-      <DashboardFooter />
     </div>
   );
 };

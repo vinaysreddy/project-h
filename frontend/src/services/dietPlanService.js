@@ -12,12 +12,12 @@ export const fetchDietPlan = async (userData) => {
   try {
     // Prepare the request payload
     const payload = {
-      calories: userData.calorieTarget || 2200,
-      protein: userData.macros?.protein * 10 || 180, // Convert percentage to grams (approx)
-      carbs: userData.macros?.carbs * 10 || 220,     // Convert percentage to grams (approx)
-      fats: userData.macros?.fat * 10 || 70,         // Convert percentage to grams (approx)
+      calories: userData.calorieTarget,
+      protein: userData.macros?.protein * 10, // Convert percentage to grams (approx)
+      carbs: userData.macros?.carbs * 10,     // Convert percentage to grams (approx)
+      fats: userData.macros?.fat * 10,         // Convert percentage to grams (approx)
       meals_per_day: 4, // Default to 4 meals (breakfast, lunch, dinner, snack)
-      diet_type: userData.dietType || "non-veg",
+      diet_type: userData.dietType,
       food_restrictions: userData.foodRestrictions || [],
       allergies: userData.allergies || [],
       goal: mapGoalToApiFormat(userData.primaryGoal)

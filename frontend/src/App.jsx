@@ -1,19 +1,16 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import './App.css';
-
-// Import pages
-import Home from '@/components/home/Home.jsx';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Home from './components/home/Home';
+import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
   return (
-    <div className="App">
-      <main className="main-content">
+    <AuthProvider>
         <Routes>
           <Route path="/" element={<Home />} />
+          {/* Add other routes as needed */}
         </Routes>
-      </main>
-    </div>
+    </AuthProvider>
   );
 }
 
