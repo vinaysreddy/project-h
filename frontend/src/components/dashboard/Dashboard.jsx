@@ -5,10 +5,10 @@ import DashboardFooter from './DashboardFooter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, UtensilsCrossed, LineChart, Layout } from 'lucide-react';
 import OverviewTab from './OverviewTab';
+import NutritionTab from '../nutrition/NutritionCard';
 
 const Dashboard = ({ formData }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [projectedWeightData, setProjectedWeightData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [healthMetrics, setHealthMetrics] = useState({});
 
@@ -35,12 +35,6 @@ const Dashboard = ({ formData }) => {
         const tdee = calculations.calculateTDEE(bmr, formData.activityLevel);
         const calorieTarget = calculations.calculateCalorieTarget(tdee, formData.primaryGoal);
         const macros = calculations.calculateMacros(calorieTarget, formData.primaryGoal);
-        const waterIntake = calculations.calculateWaterIntake(formData.weight, formData.weightUnit, formData.activityLevel);
-        const healthyWeightRange = calculations.calculateHealthyWeightRange(formData.height, formData.heightUnit);
-        const successProbability = calculations.calculateSuccessProbability(formData);
-        const cardioZones = calculations.calculateCardioZones(formData.dateOfBirth);
-        const sleepRecommendation = calculations.calculateSleepRecommendation(formData.dateOfBirth, formData.activityLevel);
-        const workoutRecommendation = calculations.getWorkoutRecommendation(formData.primaryGoal, formData.weeklyExercise, formData.healthConditions);
         
         // Get BMI category and color
         const { category: bmiCategory, color: bmiColor } = calculations.getBMICategory(bmi);
@@ -50,29 +44,13 @@ const Dashboard = ({ formData }) => {
           bmi,
           bmiCategory,
           bmiColor,
-          healthyWeightRange,
           weightUnit: formData.weightUnit,
           calorieTarget,
           tdee,
           bmr,
-          waterIntake,
-          macros,
-          sleepRecommendation,
-          successProbability,
-          cardioZones,
-          workoutRecommendation
+          macros     
         });
 
-        // Generate projected weight data
-        if (formData.targetWeight) {
-          const weightData = calculations.generateWeightProjection(
-            formData.weight,
-            formData.targetWeight,
-            formData.primaryGoal,
-            formData.weightUnit
-          );
-          setProjectedWeightData(weightData);
-        }
       } catch (error) {
         console.error("Error calculating health metrics:", error);
       }
@@ -84,7 +62,6 @@ const Dashboard = ({ formData }) => {
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
-      {/* Dashboard Header with Key Health Metrics */}
       <DashboardHeader 
         userData={formData || {}} 
         healthMetrics={healthMetrics} 
@@ -159,20 +136,14 @@ const Dashboard = ({ formData }) => {
               <OverviewTab 
                 userData={formData || {}} 
                 healthMetrics={healthMetrics} 
-                projectedWeightData={projectedWeightData}
-                workoutRecommendation={healthMetrics.workoutRecommendation || {}}
               />
             </TabsContent>
             
             <TabsContent value="nutrition" className="animate-in fade-in-50 duration-300">
-              {/* Improved placeholder */}
-              <div className="text-center p-12 border border-dashed rounded-lg">
-                <UtensilsCrossed className="h-12 w-12 mx-auto text-[#3E7B27] opacity-30 mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">Nutrition Plan Coming Soon</h3>
-                <p className="text-gray-500 max-w-md mx-auto">
-                  We're preparing a personalized nutrition plan based on your goals and preferences. Check back soon!
-                </p>
-              </div>
+              <NutritionTab 
+                userData={formData || {}} 
+                healthMetrics={healthMetrics} 
+              />
             </TabsContent>
             
             <TabsContent value="fitness" className="animate-in fade-in-50 duration-300">
@@ -200,7 +171,6 @@ const Dashboard = ({ formData }) => {
         )}
       </Tabs>
       
-      {/* New Dashboard Footer with Waitlist Call-to-Action */}
       <DashboardFooter />
     </div>
   );

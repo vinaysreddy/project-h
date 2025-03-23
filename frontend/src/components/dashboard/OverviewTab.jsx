@@ -14,13 +14,12 @@ import {
   Clock
 } from 'lucide-react';
 
-const OverviewTab = ({ userData = {}, healthMetrics = {}, projectedWeightData = [], workoutRecommendation = {} }) => {
+const OverviewTab = ({ userData = {}, healthMetrics = {},}) => {
   // Destructure with default values to prevent errors
-  const { 
+  const {
     bmi = 0,
     bmiCategory = 'Unknown', 
     calorieTarget = 2000,
-    successProbability = 0.75,
     weightUnit = 'kg'
   } = healthMetrics || {};
 
@@ -268,76 +267,6 @@ const OverviewTab = ({ userData = {}, healthMetrics = {}, projectedWeightData = 
               </button>
             </div>
           )}
-        </CardContent>
-      </Card>
-      
-      {/* Next Steps Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-bold flex items-center">
-            <CalendarClock className="h-5 w-5 mr-2 text-gray-700" />
-            Recommended Next Steps
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {!hasWorkoutPlan && (
-              <div className="flex items-start gap-4 p-3 border rounded-md">
-                <div className="bg-[#e72208] bg-opacity-10 p-2 rounded-full">
-                  <Dumbbell className="h-5 w-5 text-[#e72208]" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium">Create your workout plan</h3>
-                  <p className="text-sm text-muted-foreground">Generate a personalized workout routine based on your goals and fitness level</p>
-                  <button className="text-sm px-4 py-1.5 mt-2 bg-[#e72208] text-white rounded-md flex items-center">
-                    Create Now <ArrowRight className="ml-1 h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {!hasDietPlan && (
-              <div className="flex items-start gap-4 p-3 border rounded-md">
-                <div className="bg-[#3E7B27] bg-opacity-10 p-2 rounded-full">
-                  <Apple className="h-5 w-5 text-[#3E7B27]" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium">Create your nutrition plan</h3>
-                  <p className="text-sm text-muted-foreground">Get a customized meal plan with healthy recipes and portion guidance</p>
-                  <button className="text-sm px-4 py-1.5 mt-2 bg-[#3E7B27] text-white rounded-md flex items-center">
-                    Create Now <ArrowRight className="ml-1 h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {!hasWeightGoal && (
-              <div className="flex items-start gap-4 p-3 border rounded-md">
-                <div className="bg-[#4D55CC] bg-opacity-10 p-2 rounded-full">
-                  <Scale className="h-5 w-5 text-[#4D55CC]" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium">Set a weight goal</h3>
-                  <p className="text-sm text-muted-foreground">Define a target weight to help track your progress over time</p>
-                  <button className="text-sm px-4 py-1.5 mt-2 bg-[#4D55CC] text-white rounded-md flex items-center">
-                    Set Goal <ArrowRight className="ml-1 h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {hasWorkoutPlan && hasDietPlan && hasWeightGoal && (
-              <div className="flex items-start gap-4 p-3 border rounded-md bg-green-50">
-                <div className="bg-green-100 p-2 rounded-full">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium">You're all set!</h3>
-                  <p className="text-sm text-muted-foreground">Your profile is complete. Continue following your workout and nutrition plans to achieve your goals.</p>
-                </div>
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
     </div>
