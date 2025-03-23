@@ -34,10 +34,14 @@ const OnboardingForm = ({ formData, setFormData, onSubmit }) => {
 
   const nextStep = () => {
     setCurrentStep(currentStep + 1);
+    // Scroll to top when moving to next step
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const prevStep = () => {
     setCurrentStep(currentStep - 1);
+    // Scroll to top when moving to previous step
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
   const isStepValid = () => {
@@ -76,45 +80,82 @@ const OnboardingForm = ({ formData, setFormData, onSubmit }) => {
     }
   };
 
+  const getStepName = () => {
+    switch (currentStep) {
+      case 1: return "Basic Information";
+      case 2: return "Body Measurements";
+      case 3: return "Fitness Goals";
+      case 4: return "Activity Level";
+      case 5: return "Exercise Availability";
+      case 6: return "Health Conditions";
+      default: return "";
+    }
+  };
+
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-8">
-        <h2 className="text-2xl font-bold mb-6 text-center">Step {currentStep} of 6: {
-          currentStep === 1 ? "Basic Information" :
-          currentStep === 2 ? "Body Measurements" :
-          currentStep === 3 ? "Fitness Goals" :
-          currentStep === 4 ? "Activity Level" :
-          currentStep === 5 ? "Exercise Availability" :
-          "Health Conditions"
-        }</h2>
-
-        {renderStep()}
-
-        <div className="mt-8 flex justify-between">
-          {currentStep > 1 && (
-            <button 
-              onClick={prevStep}
-              className="px-4 py-2 border rounded text-gray-700 hover:bg-gray-50"
-            >
-              Back
-            </button>
-          )}
-          {currentStep < 6 ? (
-            <button 
-              onClick={nextStep}
-              className="ml-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              disabled={!isStepValid()}
-            >
-              Next
-            </button>
-          ) : (
-            <button 
-              onClick={onSubmit}
-              className="ml-auto px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Submit
-            </button>
-          )}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-2xl">
+        {/* Simple progress bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-medium text-gray-500">Progress</p>
+            <p className="text-sm font-medium text-gray-500">{currentStep}/6</p>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+            <div 
+              className="bg-gradient-to-r from-[#e72208] via-[#3E7B27] to-[#4D55CC] h-2.5 rounded-full transition-all duration-300"
+              style={{ width: `${(currentStep / 6) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+        
+        {/* Step title */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">
+            {getStepName()}
+          </h2>
+        </div>
+        
+        {/* Form content */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="p-6">
+            {renderStep()}
+            
+            {/* Navigation buttons */}
+            <div className="mt-8 flex justify-between pt-6 border-t border-gray-100">
+              {currentStep > 1 ? (
+                <button 
+                  onClick={prevStep}
+                  className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Back
+                </button>
+              ) : (
+                <div></div>
+              )}
+              
+              {currentStep < 6 ? (
+                <button 
+                  onClick={nextStep}
+                  disabled={!isStepValid()}
+                  className={`px-5 py-2.5 rounded-lg text-white transition-colors
+                    ${isStepValid() 
+                      ? 'bg-gradient-to-r from-[#e72208] via-[#3E7B27] to-[#4D55CC] hover:opacity-90' 
+                      : 'bg-gray-300 cursor-not-allowed'
+                    }`}
+                >
+                  Continue
+                </button>
+              ) : (
+                <button 
+                  onClick={onSubmit}
+                  className="px-5 py-2.5 bg-[#3E7B27] text-white rounded-lg hover:bg-[#3E7B27]/90 transition-colors"
+                >
+                  Complete
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
