@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import HomeHero from './HomeHero';
 import OnboardingForm from '../onboarding/OnboardingForm';
 import Dashboard from '../dashboard/Dashboard';
+import Login from '../auth/Login';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Home = () => {
+  const { currentUser } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [formData, setFormData] = useState({
     dateOfBirth: '',
@@ -25,26 +29,40 @@ const Home = () => {
     setShowOnboarding(true);
   };
 
-  const handleSubmit = () => {
-    console.log('Form data submitted:', formData);
+  const handleOnboardingComplete = () => {
+    console.log('Onboarding data:', formData);
+    setShowOnboarding(false);
+    setShowLogin(true);
+  };
+
+  const handleLoginSuccess = () => {
+    setShowLogin(false);
     setShowDashboard(true);
   };
 
-  if (showDashboard) {
+  // If user is already logged in and completed onboarding, show dashboard
+  if (currentUser && showDashboard) {
     return <Dashboard formData={formData} />;
   }
 
-  if (!showOnboarding) {
-    return <HomeHero onGetStarted={handleGetStarted} />;
+  // Show login screen after onboarding
+  if (showLogin) {
+    return <Login onLoginSuccess={handleLoginSuccess} formData={formData} />;
+  }
+
+  // Show onboarding form if user clicked "Get Started"
+  if (showOnboarding) {
+    return (
+      <OnboardingForm 
+        formData={formData} 
+        setFormData={setFormData} 
+        onSubmit={handleOnboardingComplete} 
+      />
+    );
   }
   
-  return (
-    <OnboardingForm 
-      formData={formData} 
-      setFormData={setFormData} 
-      onSubmit={handleSubmit} 
-    />
-  );
+  // Show homepage hero by default
+  return <HomeHero onGetStarted={handleGetStarted} />;
 };
 
 export default Home;

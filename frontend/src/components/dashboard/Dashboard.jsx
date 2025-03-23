@@ -155,8 +155,6 @@ const Dashboard = ({ formData }) => {
           </>
         )}
       </Tabs>
-      
-      <DashboardFooter />
     </div>
   );
 };
