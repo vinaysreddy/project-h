@@ -7,7 +7,7 @@ import userRoutes from './routes/userRoutes.js';
 import planRoutes from './routes/planRoutes.js';
 
 // Get __dirname in ES modules
-import { fileURLToPath } from 'url'; 
+import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -29,9 +29,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/plans', planRoutes);
+
+// Register routes - note we're mounting at /api
+app.use('/api', authRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;

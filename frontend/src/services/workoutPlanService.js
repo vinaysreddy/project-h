@@ -12,7 +12,7 @@ export const fetchWorkoutPlan = async (userData) => {
   try {
     // Prepare the request payload
     const payload = {
-      days_per_week: userData.workoutDaysPerWeek || 3,
+      days_per_week: userData.workoutDaysPerWeek,
       preferred_days: userData.preferredWorkoutDays || ["Monday", "Wednesday", "Friday"],
       session_duration: userData.workoutDuration || "30-45 minutes",
       workout_environments: userData.workoutEnvironments || ["Home", "Gym"],
