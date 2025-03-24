@@ -1,42 +1,32 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import path from 'path'; // Import path module
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import questionnaireRoutes from './routes/questionnaireRoutes.js';
 import planRoutes from './routes/planRoutes.js';
 
-// Get __dirname in ES modules
-import { fileURLToPath } from 'url';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+// Load environment variables
 dotenv.config();
 
-// Initialize the app
+// Initialize Express app
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(express.json());
+// Middlewares
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Route for the homepage
-app.get('/', (req, res) => {
-    // Directly send the static HTML file
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-//app.use('/api/users', userRoutes);
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/questionnaires', questionnaireRoutes);
 app.use('/api/plans', planRoutes);
 
-// Register routes - note we're mounting at /api
-app.use('/api', authRoutes);
+// Root route for API health check
 
-// Start server
-const PORT = process.env.PORT || 3000;
+// Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

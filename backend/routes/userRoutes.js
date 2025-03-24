@@ -1,9 +1,13 @@
 import express from 'express';
-import { getUserData } from '../controllers/userController.js';
+import { getUserDetails, updateUserDetails } from '../controllers/userController.js';
+import { checkAuthentication } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// GET route for fetching user data
-router.get('/:uid', getUserData);
+// Retrieve the user's basic details including height, weight, fitness goals, etc.
+router.get('/details', checkAuthentication, getUserDetails);
+
+// Update or create the user's basic details like height, weight, and fitness goals
+router.put('/details', checkAuthentication, updateUserDetails);
 
 export default router;

@@ -1,5 +1,9 @@
-import { firebaseAdmin, db } from '../config/firebase.js';
+import { db, firebaseAdmin } from '../config/firebase.js';
 
+/**
+ * Authenticate a user with Firebase Auth
+ * Handles both new user registration and returning user login
+ */
 const authenticateUser = async (req, res) => {
     try {
         // Extract the ID token from the Authorization header
@@ -9,64 +13,113 @@ const authenticateUser = async (req, res) => {
         }
 
         const idToken = authHeader.split(' ')[1]; // Extract token after "Bearer "
-
-        console.log("idTokenm          ",idToken);
-
+        console.log("idToken    ", idToken);
         // Verify the ID token using Firebase Admin SDK
         const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
-        const uid = decodedToken.uid; // Extract user UID
 
-        // Extract questionnaire data
-        const questionnaireData = req.body?.questionnaireData;
+        // Get user info from the decoded token
+        const { uid, email, name, picture } = decodedToken;
 
-        // Step 1: Store or update basic user information in the `users` collection
+        // Check if user exists in your database
         const userRef = db.collection('users').doc(uid);
         const userDoc = await userRef.get();
 
+        // Check if basic details were provided in the request
+        const basicDetails = req.body?.basicDetails || null;
+
+        let isNewUser = false;
+
         if (!userDoc.exists) {
+            // New user - create user document
+            isNewUser = true;
+
+            // Create user in 'users' collection
             await userRef.set({
-                email: decodedToken.email,
-                name: decodedToken.name || '',
-                uid: uid,
-                createdAt: new Date(),
+                uid,
+                email,
+                displayName: name || '',
+                photoURL: picture || '',
+                createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                lastLogin: firebaseAdmin.firestore.FieldValue.serverTimestamp()
             });
-        }
 
-        // Step 2: Store or update the user's questionnaire data in `userProfiles` collection
-        if (questionnaireData) {
-            const userProfileRef = db.collection('userProfiles').doc(uid);  // Fixed collection name
-            const userProfileDoc = await userProfileRef.get();
+            // If basic details were provided, store them
+            if (basicDetails) {
+                const userBasicDetailsRef = db.collection('user_basic_details').doc(uid);
+                await userBasicDetailsRef.set({
+                    userId: uid,
+                    daily_activity_level: basicDetails.daily_activity_level || '',
+                    dob: basicDetails.dob || '',
+                    exercise_availability: basicDetails.exercise_availability || '',
+                    gender: basicDetails.gender || '',
+                    health_conditions: Array.isArray(basicDetails.health_conditions) ? basicDetails.health_conditions : [],
+                    height_in_cm: basicDetails.height_in_cm || 0,
+                    weight_in_kg: basicDetails.weight_in_kg || 0,
+                    other_medical_conditions: basicDetails.other_medical_conditions || '',
+                    primary_fitness_goal: basicDetails.primary_fitness_goal || '',
+                    target_weight: basicDetails.target_weight || 0,
+                    created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                    updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        } else {
+            // Existing user - update login time
+            await userRef.update({
+                lastLogin: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+            });
 
-            const profileData = {
-                dob: questionnaireData.dob,
-                gender: questionnaireData.gender,
-                height_in_cm: questionnaireData.height_in_cm,
-                weight_in_kg: questionnaireData.weight_in_kg,
-                primary_fitness_goal: questionnaireData.primary_fitness_goal,
-                target_weight: ['fat_loss', 'gain_muscle'].includes(questionnaireData.primary_fitness_goal)
-                    ? questionnaireData.target_weight
-                    : null,
-                daily_activity_level: questionnaireData.daily_activity_level,
-                exercise_availability: questionnaireData.exercise_availability,
-                health_conditions: questionnaireData.health_conditions || [],
-                other_medical_conditions: questionnaireData.other_medical_conditions || '',
-                updatedAt: new Date(),
-            };
+            // If basic details were provided, update them
+            if (basicDetails) {
+                const userBasicDetailsRef = db.collection('user_basic_details').doc(uid);
+                const basicDetailsDoc = await userBasicDetailsRef.get();
 
-            if (!userProfileDoc.exists) {
-                await userProfileRef.set({ ...profileData, createdAt: new Date() });
-            } else {
-                await userProfileRef.update(profileData);
+                if (basicDetailsDoc.exists) {
+                    // Update existing details
+                    await userBasicDetailsRef.update({
+                        ...basicDetails,
+                        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    // Create new details document
+                    await userBasicDetailsRef.set({
+                        userId: uid,
+                        daily_activity_level: basicDetails.daily_activity_level || '',
+                        dob: basicDetails.dob || '',
+                        exercise_availability: basicDetails.exercise_availability || '',
+                        gender: basicDetails.gender || '',
+                        health_conditions: Array.isArray(basicDetails.health_conditions) ? basicDetails.health_conditions : [],
+                        height_in_cm: basicDetails.height_in_cm || 0,
+                        weight_in_kg: basicDetails.weight_in_kg || 0,
+                        other_medical_conditions: basicDetails.other_medical_conditions || '',
+                        primary_fitness_goal: basicDetails.primary_fitness_goal || '',
+                        target_weight: basicDetails.target_weight || 0,
+                        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+                    });
+                }
             }
         }
 
-        // Step 3: Send response
+        // Get user data to return in response
+        const userData = {
+            uid,
+            email,
+            displayName: name || '',
+            photoURL: picture || '',
+            isNewUser
+        };
+
+        // Get user's basic details if they exist
+        const basicDetailsRef = db.collection('user_basic_details').doc(uid);
+        const basicDetailsDoc = await basicDetailsRef.get();
+
+        if (basicDetailsDoc.exists) {
+            userData.basicDetails = basicDetailsDoc.data();
+        }
+
         res.status(200).json({
-            message: 'User authenticated and profile stored successfully',
-            uid: uid,
-            email: decodedToken.email,
-            name: decodedToken.name || '',
-            questionnaireData: questionnaireData || null,
+            message: isNewUser ? 'User registered successfully' : 'User logged in successfully',
+            user: userData
         });
     } catch (error) {
         console.error('Error authenticating user:', error);
@@ -74,7 +127,10 @@ const authenticateUser = async (req, res) => {
     }
 };
 
-const handleUserOnboarding = async (req, res) => {
+/**
+ * Store or update the user's basic details
+ */
+const storeUserBasicDetails = async (req, res) => {
     try {
         // Extract the ID token from the Authorization header
         const authHeader = req.headers.authorization;
@@ -82,53 +138,89 @@ const handleUserOnboarding = async (req, res) => {
             return res.status(401).json({ message: 'Unauthorized: No token provided' });
         }
 
-        const idToken = authHeader.split(' ')[1]; // Extract token after "Bearer "
+        const idToken = authHeader.split(' ')[1];
 
-        // Verify the ID token using Firebase Admin SDK
+        // Verify the token
         const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
-        const uid = decodedToken.uid; // Extract user UID
+        const uid = decodedToken.uid;
 
-        // Extract user data from request body
-        const userData = req.body?.userData;
+        // Get basic details from request body
+        const basicDetails = req.body;
 
-        if (!userData) {
-            return res.status(400).json({ message: 'No user data provided' });
+        if (!basicDetails) {
+            return res.status(400).json({ message: 'No basic details provided' });
         }
 
-        // Store or update the user's profile data in `userProfiles` collection
-        const userProfileRef = db.collection('userProfiles').doc(uid);
-        const userProfileDoc = await userProfileRef.get();
+        // Reference to the user's basic details document
+        const basicDetailsRef = db.collection('user_basic_details').doc(uid);
 
-        const profileData = {
-            dob: userData.dob,
-            gender: userData.gender,
-            height_in_cm: userData.height_in_cm,
-            weight_in_kg: userData.weight_in_kg,
-            primary_fitness_goal: userData.primary_fitness_goal,
-            target_weight: ['fat_loss', 'gain_muscle'].includes(userData.primary_fitness_goal)
-                ? userData.target_weight
-                : null,
-            daily_activity_level: userData.daily_activity_level,
-            exercise_availability: userData.exercise_availability,
-            health_conditions: userData.health_conditions || [],
-            other_medical_conditions: userData.other_medical_conditions || '',
-            updatedAt: new Date(),
-        };
+        // Check if document exists
+        const doc = await basicDetailsRef.get();
 
-        if (!userProfileDoc.exists) {
-            await userProfileRef.set({ ...profileData, createdAt: new Date() });
+        if (doc.exists) {
+            // Update existing document
+            await basicDetailsRef.update({
+                ...basicDetails,
+                updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+            });
+
+            res.status(200).json({
+                message: 'Basic details updated successfully',
+                userId: uid
+            });
         } else {
-            await userProfileRef.update(profileData);
-        }
+            // Create new document
+            await basicDetailsRef.set({
+                userId: uid,
+                ...basicDetails,
+                created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+            });
 
-        res.status(200).json({
-            message: 'User onboarding data stored successfully',
-            uid: uid
-        });
+            res.status(201).json({
+                message: 'Basic details created successfully',
+                userId: uid
+            });
+        }
     } catch (error) {
-        console.error('Error handling user onboarding:', error);
-        res.status(401).json({ message: 'Onboarding failed', error: error.message });
+        console.error('Error storing basic details:', error);
+        res.status(500).json({ message: 'Failed to store basic details', error: error.message });
     }
 };
 
-export { authenticateUser, handleUserOnboarding };
+/**
+ * Get the user's basic details
+ */
+const getUserBasicDetails = async (req, res) => {
+    try {
+        // Extract the ID token from the Authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ message: 'Unauthorized: No token provided' });
+        }
+
+        const idToken = authHeader.split(' ')[1];
+
+        // Verify the token
+        const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+
+        // Get user's basic details
+        const basicDetailsRef = db.collection('user_basic_details').doc(uid);
+        const doc = await basicDetailsRef.get();
+
+        if (!doc.exists) {
+            return res.status(404).json({ message: 'Basic details not found' });
+        }
+
+        res.status(200).json({
+            message: 'Basic details retrieved successfully',
+            basicDetails: doc.data()
+        });
+    } catch (error) {
+        console.error('Error retrieving basic details:', error);
+        res.status(500).json({ message: 'Failed to retrieve basic details', error: error.message });
+    }
+};
+
+export { authenticateUser, storeUserBasicDetails, getUserBasicDetails };

@@ -1,16 +1,16 @@
 import express from 'express';
-import { authenticateUser, handleUserOnboarding } from '../controllers/authController.js';
-import { getUserProfile } from '../controllers/userController.js';
+import { authenticateUser, storeUserBasicDetails, getUserBasicDetails } from '../controllers/authController.js';
+import { checkAuthentication } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Route for authentication - matches frontend URL: http://localhost:3000/api/authenticate
-router.post('/authenticate', authenticateUser);
+// User authentication (login/registration with Google)
+router.post('/', authenticateUser);
 
-// Route for user onboarding - matches frontend URL: http://localhost:3000/api/user/onboarding
-router.post('/user/onboarding', handleUserOnboarding);
+// Store or update user basic details
+router.post('/basic-details', checkAuthentication, storeUserBasicDetails);
 
-// Route to get the profile of the logged-in user
-router.get('/profile', getUserProfile);
+// Get user basic details
+router.get('/basic-details', checkAuthentication, getUserBasicDetails);
 
 export default router;

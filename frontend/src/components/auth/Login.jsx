@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { FcGoogle } from 'react-icons/fc';
+import { authenticateUser, saveUserBasicDetails } from '../../services/authService';
 
 const Login = ({ onLoginSuccess, formData }) => {
   const { signInWithGoogle } = useAuth();
@@ -16,44 +17,31 @@ const Login = ({ onLoginSuccess, formData }) => {
       // Map your formData to match the expected backend format
       const backendData = {
         questionnaireData: {
-          dob: formData.dateOfBirth,
-          gender: formData.gender?.toLowerCase() || '',
-          height_in_cm: formData.heightUnit === 'cm' ?
+          dob: formData?.dateOfBirth,
+          gender: formData?.gender?.toLowerCase() || '',
+          height_in_cm: formData?.heightUnit === 'cm' ?
             parseInt(formData.height) :
-            Math.round(parseInt(formData.height) * 2.54),
-          weight_in_kg: formData.weightUnit === 'kg' ?
-            parseInt(formData.weight) :
-            Math.round(parseInt(formData.weight) / 2.205),
-          primary_fitness_goal: formData.primaryGoal,
-          target_weight: parseInt(formData.targetWeight || '0'),
-          daily_activity_level: formData.activityLevel,
-          exercise_availability: formData.weeklyExercise,
-          health_conditions: formData.healthConditions || [],
-          other_medical_conditions: formData.otherCondition || ''
+            Math.round(parseInt(formData?.height || '0') * 2.54),
+          weight_in_kg: formData?.weightUnit === 'kg' ?
+            parseInt(formData?.weight || '0') :
+            Math.round(parseInt(formData?.weight || '0') / 2.205),
+          primary_fitness_goal: formData?.primaryGoal || '',
+          target_weight: parseInt(formData?.targetWeight || '0'),
+          daily_activity_level: formData?.activityLevel || '',
+          exercise_availability: formData?.weeklyExercise || '',
+          health_conditions: formData?.healthConditions || [],
+          other_medical_conditions: formData?.otherCondition || ''
         }
       };
 
       // Send user data and token to backend
-      const response = await fetch('http://localhost:3000/api/authenticate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...backendData,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          uid: user.uid
-        })
+      await authenticateUser(token, {
+        ...backendData,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        uid: user.uid
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Server response:', errorData);
-        throw new Error(`Authentication failed: ${response.statusText}`);
-      }
 
       // After successful login, also send the onboarding data
       if (formData) {
@@ -61,32 +49,23 @@ const Login = ({ onLoginSuccess, formData }) => {
           dob: formData.dateOfBirth,
           gender: formData.gender?.toLowerCase() || '',
           height_in_cm: formData.heightUnit === 'cm' ?
-            parseInt(formData.height) :
-            Math.round(parseInt(formData.height) * 2.54),
+            parseInt(formData.height || '0') :
+            Math.round(parseInt(formData.height || '0') * 2.54),
           weight_in_kg: formData.weightUnit === 'kg' ?
-            parseInt(formData.weight) :
-            Math.round(parseInt(formData.weight) / 2.205),
-          primary_fitness_goal: formData.primaryGoal,
+            parseInt(formData.weight || '0') :
+            Math.round(parseInt(formData.weight || '0') / 2.205),
+          primary_fitness_goal: formData.primaryGoal || '',
           target_weight: parseInt(formData.targetWeight || '0'),
-          daily_activity_level: formData.activityLevel,
-          exercise_availability: formData.weeklyExercise,
+          daily_activity_level: formData.activityLevel || '',
+          exercise_availability: formData.weeklyExercise || '',
           health_conditions: formData.healthConditions || [],
           other_medical_conditions: formData.otherCondition || ''
         };
 
-        const onboardingResponse = await fetch('http://localhost:3000/api/user/onboarding', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            userData: formattedData
-          })
-        });
-
-        if (!onboardingResponse.ok) {
-          console.warn('Failed to save onboarding data, but login was successful');
+        try {
+          await saveUserBasicDetails(token, formattedData);
+        } catch (onboardingError) {
+          console.warn('Failed to save onboarding data, but login was successful', onboardingError);
         }
       }
 
@@ -140,7 +119,7 @@ const Login = ({ onLoginSuccess, formData }) => {
             )}
           </div>
         </button>
-        
+
         <div className="mt-6 text-center">
           <div className="flex items-center justify-center text-sm text-gray-500">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
