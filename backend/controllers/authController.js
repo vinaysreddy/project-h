@@ -10,6 +10,8 @@ const authenticateUser = async (req, res) => {
 
         const idToken = authHeader.split(' ')[1]; // Extract token after "Bearer "
 
+        console.log("idTokenm          ",idToken);
+
         // Verify the ID token using Firebase Admin SDK
         const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
         const uid = decodedToken.uid; // Extract user UID
