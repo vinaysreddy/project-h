@@ -19,6 +19,7 @@
     "express": "^4.21.2",
     "firebase": "^11.5.0",
     "firebase-admin": "^13.2.0",
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "openai": "^4.89.0"
   }
 }

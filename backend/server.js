@@ -29,7 +29,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.use('/api/users', userRoutes);
+//app.use('/api/users', userRoutes);
 app.use('/api/plans', planRoutes);
 
 // Register routes - note we're mounting at /api
