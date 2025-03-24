@@ -1,11 +1,12 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
-import { auth } from '../firebase/config';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
-  GoogleAuthProvider, 
+  getAuth, 
   signInWithPopup, 
-  onAuthStateChanged, 
-  signOut 
+  GoogleAuthProvider, 
+  signOut, 
+  onAuthStateChanged 
 } from 'firebase/auth';
+import { auth } from '../firebase/config';
 
 const AuthContext = createContext();
 
@@ -22,12 +23,17 @@ export function AuthProvider({ children }) {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      // Get the ID token
-      const token = await user.getIdToken();
-      return { token, user };
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      
+      // Get the token
+      const token = await result.user.getIdToken();
+      
+      return { 
+        token, 
+        user: result.user 
+      };
     } catch (error) {
-      console.error("Error signing in with Google:", error);
+      console.error("Google sign in error:", error);
       throw error;
     }
   }
@@ -35,6 +41,20 @@ export function AuthProvider({ children }) {
   // Sign out
   function logout() {
     return signOut(auth);
+  }
+
+  // Get current user's token
+  async function getToken() {
+    if (!currentUser) {
+      throw new Error('No authenticated user');
+    }
+    
+    try {
+      return await currentUser.getIdToken(true);
+    } catch (error) {
+      console.error('Error getting user token:', error);
+      throw error;
+    }
   }
 
   // Listen for auth state changes
@@ -50,7 +70,8 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     signInWithGoogle,
-    logout
+    logout,
+    getToken
   };
 
   return (

@@ -69,7 +69,7 @@ export const calculateBMR = (height, weight, gender, dateOfBirth, heightUnit, we
   
   // Mifflin-St Jeor Equation
   let bmr;
-  if (gender === 'Male') {
+  if (gender.toLowerCase() === 'male') {
     bmr = (10 * weightInKg) + (6.25 * heightInCm) - (5 * age) + 5;
   } else {
     bmr = (10 * weightInKg) + (6.25 * heightInCm) - (5 * age) - 161;
@@ -81,20 +81,17 @@ export const calculateBMR = (height, weight, gender, dateOfBirth, heightUnit, we
 export const calculateTDEE = (bmr, activityLevel) => {
   if (bmr === 'N/A') return 'N/A';
   
-  let activityMultiplier;
-  if (activityLevel.includes('Sedentary')) {
-    activityMultiplier = 1.2;
-  } else if (activityLevel.includes('Lightly Active')) {
-    activityMultiplier = 1.375;
-  } else if (activityLevel.includes('Moderately Active')) {
-    activityMultiplier = 1.55;
-  } else if (activityLevel.includes('Active')) {
-    activityMultiplier = 1.725;
-  } else if (activityLevel.includes('Very Active')) {
-    activityMultiplier = 1.9;
-  } else {
-    return 'N/A';
-  }
+  // Map the activity level values to multipliers
+  const activityMultipliers = {
+    'sedentary': 1.2,
+    'lightly_active': 1.375,
+    'moderately_active': 1.55,
+    'active': 1.725,
+    'very_active': 1.9
+  };
+  
+  // Get the multiplier or use a default
+  const activityMultiplier = activityMultipliers[activityLevel] || 1.55;
   
   return Math.round(bmr * activityMultiplier);
 };
@@ -102,12 +99,13 @@ export const calculateTDEE = (bmr, activityLevel) => {
 export const calculateCalorieTarget = (tdee, primaryGoal) => {
   if (!tdee || tdee === 'N/A') return 'N/A';
 
+  // Map goal IDs from FitnessGoalsStep to calorie adjustments
   const goalMultipliers = {
-    '🔥 Lose Weight (Fat Loss)': 0.8,                      // 20% deficit
-    '💪 Gain Muscle (Muscle Building & Hypertrophy)': 1.1, // 10% surplus
-    '🏃 Improve Endurance & Cardiovascular Health': 0.95,  // 5% deficit
-    '⚖️ Maintain Weight & Improve Body Composition': 1.0,  // Maintenance
-    '🌱 General Wellness & Energy Boost': 1.0,             // Maintenance
+    'lose_weight': 0.8,        // 20% deficit for weight loss
+    'gain_muscle': 1.1,        // 10% surplus for muscle gain
+    'improve_endurance': 0.95, // 5% deficit for endurance
+    'maintain_weight': 1.0,    // Maintenance for toning
+    'general_wellness': 1.0    // Maintenance for general health
   };
 
   const multiplier = goalMultipliers[primaryGoal] || 1.0;
@@ -119,12 +117,13 @@ export const calculateMacros = (calorieTarget, primaryGoal) => {
     return { protein: 'N/A', carbs: 'N/A', fat: 'N/A' };
   }
 
+  // Updated macro ratios based on the primary goal IDs
   const macroRatios = {
-    '🔥 Lose Weight (Fat Loss)': { protein: 0.35, carbs: 0.35, fat: 0.30 },
-    '💪 Gain Muscle (Muscle Building & Hypertrophy)': { protein: 0.30, carbs: 0.45, fat: 0.25 },
-    '🏃 Improve Endurance & Cardiovascular Health': { protein: 0.25, carbs: 0.55, fat: 0.20 },
-    '⚖️ Maintain Weight & Improve Body Composition': { protein: 0.30, carbs: 0.40, fat: 0.30 },
-    '🌱 General Wellness & Energy Boost': { protein: 0.30, carbs: 0.40, fat: 0.30 },
+    'lose_weight': { protein: 0.35, carbs: 0.35, fat: 0.30 },
+    'gain_muscle': { protein: 0.30, carbs: 0.45, fat: 0.25 },
+    'improve_endurance': { protein: 0.25, carbs: 0.55, fat: 0.20 },
+    'maintain_weight': { protein: 0.30, carbs: 0.40, fat: 0.30 },
+    'general_wellness': { protein: 0.30, carbs: 0.40, fat: 0.30 }
   };
 
   const defaultRatio = { protein: 0.30, carbs: 0.40, fat: 0.30 };

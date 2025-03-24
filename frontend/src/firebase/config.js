@@ -1,3 +1,7 @@
+/* Initializes the Firebase app with your config
+Sets up the authentication service
+Exports the auth object to be used throughout your app */
+
 //Firebase setup
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';

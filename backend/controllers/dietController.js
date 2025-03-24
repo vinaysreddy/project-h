@@ -39,13 +39,13 @@ const storeDiet = async (req, res) => {
 
         // Ensure the data has the required fields
         const formattedData = {
-            goal: dietInputData.goal || 'maintenance',
-            totalCalories: parseInt(dietInputData.totalCalories) || 2000,
-            totalProtein: parseInt(dietInputData.totalProtein) || 120,
-            totalCarbs: parseInt(dietInputData.totalCarbs) || 200,
-            totalFats: parseInt(dietInputData.totalFats) || 65,
-            dietType: dietInputData.dietType || 'non-veg',
-            mealsPerDay: parseInt(dietInputData.mealsPerDay) || 3,
+            goal: dietInputData.goal,
+            totalCalories: parseInt(dietInputData.totalCalories),
+            totalProtein: parseInt(dietInputData.totalProtein),
+            totalCarbs: parseInt(dietInputData.totalCarbs),
+            totalFats: parseInt(dietInputData.totalFats),
+            dietType: dietInputData.dietType,
+            mealsPerDay: parseInt(dietInputData.mealsPerDay),
             foodRestrictions: Array.isArray(dietInputData.foodRestrictions) ? dietInputData.foodRestrictions : [],
             allergies: Array.isArray(dietInputData.allergies) ? dietInputData.allergies : [],
             updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()

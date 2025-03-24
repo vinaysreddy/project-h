@@ -1,3 +1,8 @@
+/* Acts as the app's router/controller
+Manages which screen is displayed (onboarding, login, dashboard)
+Stores and passes form data between components
+Coordinates the flow from onboarding to login to dashboard */
+
 import React, { useState } from 'react';
 import HomeHero from './HomeHero';
 import OnboardingForm from '../onboarding/OnboardingForm';

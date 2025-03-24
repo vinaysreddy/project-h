@@ -1,19 +1,28 @@
 /* Main component that displays the nutrition information
 Uses the diet plan data to render UI */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Apple, Utensils, Coffee, CircleEllipsis, Timer, Info, CheckCircle2, CalendarCheck } from 'lucide-react';
+import { Apple, Utensils, Coffee, CircleEllipsis, Timer, Info, CheckCircle2, CalendarCheck, AlertCircle } from 'lucide-react';
 import DietPlanGenerator from './DietPlanGenerator';
 import { LightbulbIcon } from 'lucide-react';
 import { CircleCheckBig } from 'lucide-react';
+import DietQuestionnaire from './DietQuestionnaire';
+import { useAuth } from '../../contexts/AuthContext';
+import axios from 'axios';
+import { Button } from '@/components/ui/button';
 
 const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
+  const { currentUser, getToken } = useAuth();
   const [activeDay, setActiveDay] = useState('day1');
   const [dietPlan, setDietPlan] = useState(null);
+  const [dietPreferences, setDietPreferences] = useState(null);
+  const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [submissionError, setSubmissionError] = useState(null);
   
   // Destructure with default values to prevent errors
   const { 
@@ -22,10 +31,190 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
     tdee = 2200
   } = healthMetrics || {};
   
+  // Check if user has existing diet preferences
+  useEffect(() => {
+    const checkDietPreferences = async () => {
+      try {
+        setIsLoadingPreferences(true);
+        
+        // Get auth token
+        const token = typeof getToken === 'function' 
+          ? await getToken() 
+          : await currentUser?.getIdToken(true);
+        
+        if (!token) {
+          throw new Error('Authentication required');
+        }
+        
+        // Fetch user's diet data
+        const response = await axios.get('http://localhost:3000/api/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        console.log('Diet preferences API response:', response.data);
+        
+        // If we have diet data, store it
+        if (response.data && response.data.dietData) {
+          setDietPreferences(response.data.dietData);
+          setShowQuestionnaire(false);
+        } else {
+          // No diet data, show questionnaire
+          setShowQuestionnaire(true);
+        }
+      } catch (error) {
+        console.error('Error checking diet preferences:', error);
+        // If there's an error, show the questionnaire
+        setShowQuestionnaire(true);
+      } finally {
+        setIsLoadingPreferences(false);
+      }
+    };
+    
+    if (currentUser) {
+      checkDietPreferences();
+    }
+  }, [currentUser, getToken]);
+  
+  // Handle diet preferences submission
+  const handleDietPreferencesSubmit = async (preferencesData) => {
+    try {
+      setSubmissionError(null);
+      setIsLoadingPreferences(true);
+      
+      // Get auth token
+      const token = typeof getToken === 'function' 
+        ? await getToken() 
+        : await currentUser?.getIdToken(true);
+      
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
+      console.log('Submitting diet preferences to backend:', preferencesData);
+      
+      // Send the diet preferences to the backend
+      const response = await axios.post(
+        'http://localhost:3000/api/plans/generate-diet', 
+        preferencesData, 
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log('Diet preferences submission response:', response.data);
+      
+      // Update local state
+      setDietPreferences(preferencesData);
+      setShowQuestionnaire(false);
+    } catch (error) {
+      console.error('Error saving diet preferences:', error);
+      
+      let errorMessage = 'Failed to save your diet preferences. Please try again.';
+      
+      if (error.response) {
+        // Get more specific error from the backend if available
+        errorMessage = error.response.data?.message || errorMessage;
+        console.error('Backend error details:', error.response.data);
+      }
+      
+      setSubmissionError(errorMessage);
+    } finally {
+      setIsLoadingPreferences(false);
+    }
+  };
+  
   // Handle diet plan generated from the DietPlanGenerator
   const handleDietPlanGenerated = (generatedPlan) => {
     setDietPlan(generatedPlan);
   };
+  
+  // Retry submitting the questionnaire
+  const retrySubmission = () => {
+    setSubmissionError(null);
+    setShowQuestionnaire(true);
+  };
+  
+  // Loading state while checking preferences
+  if (isLoadingPreferences) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3E7B27]"></div>
+          <p className="mt-4 text-sm text-gray-500">Loading nutrition data...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show error state
+  if (submissionError) {
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <div className="h-2 bg-red-500 w-full"></div>
+        <CardHeader>
+          <CardTitle className="text-xl font-bold flex items-center text-red-600">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            Unable to Save Diet Preferences
+          </CardTitle>
+          <CardDescription>
+            We encountered an issue while saving your preferences
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-8">
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 w-full mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">
+                  {submissionError}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-500 max-w-md text-center mb-6">
+            This could be due to a connection issue or a problem with our service. Please try again.
+          </p>
+          
+          <Button 
+            onClick={retrySubmission} 
+            className="bg-[#3E7B27] hover:bg-[#2d5b1d]"
+          >
+            <Apple className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Show questionnaire if needed
+  if (showQuestionnaire) {
+    return <DietQuestionnaire 
+      userData={userData} 
+      healthMetrics={healthMetrics} 
+      onSubmit={handleDietPreferencesSubmit} 
+    />;
+  }
+  
+  // If we have preferences but no diet plan yet, show the generator
+  if (dietPreferences && !dietPlan) {
+    return <DietPlanGenerator 
+      userData={{
+        ...userData,
+        dietPreference: dietPreferences.dietType,
+        foodRestrictions: dietPreferences.foodRestrictions,
+        allergies: dietPreferences.allergies
+      }} 
+      healthMetrics={healthMetrics} 
+      onDietPlanGenerated={handleDietPlanGenerated} 
+    />;
+  }
   
   // If no diet plan yet, show the generator
   if (!dietPlan) {
