@@ -29,21 +29,22 @@ export function AuthProvider({ children }) {
       // 1. Authenticate with Firebase
       const result = await signInWithPopup(auth, provider);
       const token = await result.user.getIdToken();
+      const uid = result.user.uid;
       
       // 2. Register with backend
       await axios.post(`${API_URL}/auth/signup`, {
         email: result.user.email,
-        displayName: result.user.displayName,
+        name: result.user.displayName,
         photoURL: result.user.photoURL,
-        uid: result.user.uid
+        uid: uid
       }, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
-      // 3. Get user data from backend
-      await fetchUserData(token);
+      // 3. Get user data from backend - pass the uid explicitly
+      await fetchUserData(token, uid);
       
       return { 
         token, 
@@ -56,11 +57,18 @@ export function AuthProvider({ children }) {
   }
 
   // Fetch user data from backend
-  async function fetchUserData(tokenParam) {
+  async function fetchUserData(tokenParam, uidParam) {
     try {
-      const token = tokenParam || await getToken();
+      // Handle case when this is called with no auth yet
+      if (!currentUser && !uidParam) {
+        console.log("No user authenticated yet");
+        return null;
+      }
       
-      const response = await axios.get(`${API_URL}/auth/user`, {
+      const token = tokenParam || await getToken();
+      const uid = uidParam || currentUser.uid;
+      
+      const response = await axios.get(`${API_URL}/auth/user?uid=${uid}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -78,6 +86,12 @@ export function AuthProvider({ children }) {
   async function fetchOnboardingData() {
     try {
       const token = await getToken();
+      
+      // Don't proceed if we don't have a token
+      if (!token) {
+        console.warn("Cannot fetch onboarding data without authentication");
+        return null;
+      }
       
       const response = await axios.get(`${API_URL}/onboarding`, {
         headers: {
@@ -141,7 +155,8 @@ export function AuthProvider({ children }) {
   // Get current user's token
   async function getToken() {
     if (!currentUser) {
-      throw new Error('No authenticated user');
+      console.warn('No authenticated user when trying to get token');
+      return null;
     }
     
     try {
@@ -161,11 +176,21 @@ export function AuthProvider({ children }) {
         try {
           // Auto-fetch user data when signed in
           const token = await user.getIdToken();
-          await fetchUserData(token);
-          await fetchOnboardingData();
+          
+          // First fetch user profile
+          const userProfile = await fetchUserData(token, user.uid);
+          
+          // Only fetch onboarding data if we have a user profile
+          if (userProfile) {
+            await fetchOnboardingData();
+          }
         } catch (error) {
           console.error("Error fetching initial data:", error);
         }
+      } else {
+        // Reset states when user is logged out
+        setUserProfile(null);
+        setOnboardingData(null);
       }
       
       setLoading(false);
