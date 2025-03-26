@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { FcGoogle } from 'react-icons/fc';
+import { authenticateUser, saveUserBasicDetails } from '../../services/authService';
 
 const Login = ({ onLoginSuccess, formData }) => {
   const { signInWithGoogle } = useAuth();
@@ -39,29 +40,40 @@ const Login = ({ onLoginSuccess, formData }) => {
       };
 
       // Send user data and token to backend
-      const response = await fetch('http://localhost:3000/api/authenticate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...backendData,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          uid: user.uid
-        })
+      await authenticateUser(token, {
+        ...backendData,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        uid: user.uid
       });
 
-      // Handle error response from the backend
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Server response:', errorData);
-        throw new Error(`Authentication failed: ${response.statusText}`);
+      // After successful login, also send the onboarding data
+      if (formData) {
+        const formattedData = {
+          dob: formData.dateOfBirth,
+          gender: formData.gender?.toLowerCase() || '',
+          height_in_cm: formData.heightUnit === 'cm' ?
+            parseInt(formData.height || '0') :
+            Math.round(parseInt(formData.height || '0') * 2.54),
+          weight_in_kg: formData.weightUnit === 'kg' ?
+            parseInt(formData.weight || '0') :
+            Math.round(parseInt(formData.weight || '0') / 2.205),
+          primary_fitness_goal: formData.primaryGoal || '',
+          target_weight: parseInt(formData.targetWeight || '0'),
+          daily_activity_level: formData.activityLevel || '',
+          exercise_availability: formData.weeklyExercise || '',
+          health_conditions: formData.healthConditions || [],
+          other_medical_conditions: formData.otherCondition || ''
+        };
+
+        try {
+          await saveUserBasicDetails(token, formattedData);
+        } catch (onboardingError) {
+          console.warn('Failed to save onboarding data, but login was successful', onboardingError);
+        }
       }
 
-      // Call the success callback to navigate to the dashboard
       onLoginSuccess();
       
     } catch (error) {

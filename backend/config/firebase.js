@@ -27,3 +27,6 @@ const db = admin.firestore();
 
 // Export Firebase Admin and Firestore
 export { admin as firebaseAdmin, db };
+
+// Add default export
+export default { firebaseAdmin: admin, db };

@@ -1,16 +1,41 @@
-import express from 'express';
-import { authenticateUser, handleUserOnboarding } from '../controllers/authController.js';
-import { getUserProfile } from '../controllers/userController.js';
+import express from "express";
+import { db } from "../config/firebase.js";
 
 const router = express.Router();
 
-// Route for authentication - matches frontend URL: http://localhost:3000/api/authenticate
-router.post('/authenticate', authenticateUser);
+// User Signup/Login (Google Authentication)
+router.post("/signup", async (req, res) => {
+    try {
+        const { uid, email, name, photoURL } = req.body;
 
-// Route for user onboarding - matches frontend URL: http://localhost:3000/api/user/onboarding
-router.post('/user/onboarding', handleUserOnboarding);
+        const userRef = db.collection("users").doc(uid);
+        const userDoc = await userRef.get();
 
-// Route to get the profile of the logged-in user
-router.get('/profile', getUserProfile);
+        if (!userDoc.exists) {
+            await userRef.set({ uid, email, name, photoURL, createdAt: new Date() });
+        }
+
+        res.status(200).json({ message: "User authenticated successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error signing up", error: error.message });
+    }
+});
+
+// Fetch User Info
+router.get("/user", async (req, res) => {
+    try {
+        const { uid } = req.query;
+        const userRef = db.collection("users").doc(uid);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json(userDoc.data());
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching user", error: error.message });
+    }
+});
 
 export default router;
