@@ -1,5 +1,6 @@
 import express from "express";
 import { db } from "../config/firebase.js";
+import authenticateUser from "../middleware/authenticateUser.js";
 
 const router = express.Router();
 
@@ -22,9 +23,15 @@ router.post("/signup", async (req, res) => {
 });
 
 // Fetch User Info
-router.get("/user", async (req, res) => {
+router.get("/user", authenticateUser, async (req, res) => {
     try {
-        const { uid } = req.query;
+        // Get uid from the decoded token instead of query params
+        const uid = req.user.uid;
+
+        if (!uid) {
+            return res.status(400).json({ message: "User ID not found in token" });
+        }
+
         const userRef = db.collection("users").doc(uid);
         const userDoc = await userRef.get();
 
@@ -34,6 +41,7 @@ router.get("/user", async (req, res) => {
 
         res.status(200).json(userDoc.data());
     } catch (error) {
+        console.error("Error fetching user:", error);
         res.status(500).json({ message: "Error fetching user", error: error.message });
     }
 });

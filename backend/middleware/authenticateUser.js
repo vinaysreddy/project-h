@@ -1,20 +1,48 @@
-import admin from "../config/firebase.js";
+import { firebaseAdmin } from '../config/firebase.js';
 
 const authenticateUser = async (req, res, next) => {
-    const token = req.headers.authorization?.split(" ")[1];
-
-    console.log("token  ", token);
-
-    if (!token) {
-        return res.status(401).json({ message: "Unauthorized: No token provided" });
-    }
-
     try {
-        const decodedToken = await admin.auth().verifyIdToken(token);
-        req.user = decodedToken; // Attach user info to request
-        next();
+        // Get the auth header
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.log("Missing or invalid authorization header");
+            return res.status(401).json({ message: "Unauthorized: No valid authorization header" });
+        }
+
+        const token = authHeader.split(" ")[1];
+
+        if (!token) {
+            console.log("Token is empty");
+            return res.status(401).json({ message: "Unauthorized: Token not provided" });
+        }
+
+        try {
+            // Use firebaseAdmin instead of admin
+            const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+
+            // Add the decoded token to the request object
+            req.user = decodedToken;
+
+            console.log("Token verified successfully for user:", decodedToken.uid);
+            next();
+        } catch (verifyError) {
+            console.error("Token verification failed:", verifyError);
+
+            // Provide more detailed error information in development
+            if (process.env.NODE_ENV !== 'production') {
+                return res.status(401).json({
+                    message: "Unauthorized: Invalid token",
+                    error: verifyError.message,
+                    code: verifyError.code
+                });
+            }
+
+            return res.status(401).json({ message: "Unauthorized: Invalid token" });
+        }
     } catch (error) {
-        return res.status(401).json({ message: "Unauthorized: Invalid token" });
+        console.error("Authentication middleware error:", error);
+        return res.status(500).json({ message: "Authentication error", error: error.message });
     }
 };
 
