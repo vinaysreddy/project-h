@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const HomeHero = ({onGetStarted}) => {
+const LandingPage = ({ onGetStarted, onLogin }) => {
   const [animate, setAnimate] = useState(false);
   
   useEffect(() => {
@@ -38,7 +38,7 @@ const HomeHero = ({onGetStarted}) => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* Hero Section with improved visual hierarchy */}
       <div className="relative">
-        {/* Navigation Bar - Cleaner design */}
+        {/* Navigation Bar - Added onLogin to Sign In button */}
         <nav className="flex justify-between items-center py-5 px-6 md:px-16 bg-white shadow-sm sticky top-0 z-50">
           <div className="font-bold text-2xl relative group flex items-center">
             <span className="text-[#e72208]">Fit</span>
@@ -46,7 +46,10 @@ const HomeHero = ({onGetStarted}) => {
             <div className="h-1.5 w-1.5 rounded-full bg-[#4D55CC] ml-0.5 mb-4"></div>
           </div>
           <div className="flex gap-4">
-            <button className="px-5 py-2 rounded-full text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={onLogin}
+              className="px-5 py-2 rounded-full text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
               Sign In
             </button>
             <button 
@@ -58,7 +61,7 @@ const HomeHero = ({onGetStarted}) => {
           </div>
         </nav>
 
-        {/* Hero Banner with improved visual design */}
+        {/* Hero Banner - no changes */}
         <section className="relative pt-16 pb-20 px-4 md:px-16 overflow-hidden">
           {/* Abstract shapes in background - subtle and non-distracting */}
           <div className="absolute -top-10 -right-10 w-64 h-64 bg-[#e72208]/5 rounded-full"></div>
@@ -100,8 +103,12 @@ const HomeHero = ({onGetStarted}) => {
                 >
                   Start Your Journey
                 </button>
-                <button className="bg-white text-gray-700 border border-gray-200 px-8 py-3 rounded-full text-lg font-medium hover:border-gray-300 transition-all duration-300">
-                  Learn More
+                {/* Added Sign In option here as well for better visibility */}
+                <button 
+                  onClick={onLogin}
+                  className="bg-white text-gray-700 border border-gray-200 px-8 py-3 rounded-full text-lg font-medium hover:border-gray-300 transition-all duration-300"
+                >
+                  Sign In
                 </button>
               </div>
               
@@ -121,7 +128,7 @@ const HomeHero = ({onGetStarted}) => {
           </div>
         </section>
 
-        {/* Core Benefits - Enhanced cards with subtle hover effects */}
+        {/* Rest of the component remains unchanged */}
         <section className="py-16 px-4 md:px-16 bg-white border-t border-gray-100">
           <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Your Health, Simplified</h2>
@@ -145,9 +152,7 @@ const HomeHero = ({onGetStarted}) => {
           </div>
         </section>
 
-        {/* CTA Section - with cleaner design */}
         <section className="py-16 px-4 md:px-16 relative overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800">
-          {/* Subtle accent lines */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#e72208] via-[#3E7B27] to-[#4D55CC]"></div>
           
           <div className="max-w-3xl mx-auto text-center relative z-10">
@@ -162,14 +167,17 @@ const HomeHero = ({onGetStarted}) => {
               >
                 Get Started
               </button>
-              <button className="bg-transparent text-white border border-gray-600 hover:border-gray-400 px-8 py-3 rounded-full text-lg font-medium transition-colors">
-                View Demo
+              {/* Changed "View Demo" to "Sign In" for another login option */}
+              <button 
+                onClick={onLogin}
+                className="bg-transparent text-white border border-gray-600 hover:border-gray-400 px-8 py-3 rounded-full text-lg font-medium transition-colors"
+              >
+                Sign In
               </button>
             </div>
           </div>
         </section>
 
-        {/* Footer - Clean and minimal */}
         <footer className="py-10 bg-gray-900 text-gray-400 px-4 md:px-16">
           <div className="max-w-5xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-center mb-8">
@@ -199,4 +207,4 @@ const HomeHero = ({onGetStarted}) => {
   );
 };
 
-export default HomeHero;
+export default LandingPage;

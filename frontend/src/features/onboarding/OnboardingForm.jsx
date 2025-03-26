@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import PersonalInfoStep from './PersonalInfoStep';
-import BodyMeasurementsStep from './BodyMeasurementsStep';
-import FitnessGoalsStep from './FitnessGoalsStep';
-import ActivityLevelStep from './ActivityLevelStep';
-import ExerciseAvailabilityStep from './ExerciseAvailabilityStep';
-import HealthConditionsStep from './HealthConditionsStep';
+import PersonalInfoStep from './steps/PersonalInfoStep';
+import BodyMeasurementsStep from './steps/BodyMeasurementsStep';
+import FitnessGoalsStep from './steps/FitnessGoalsStep';
+import ActivityLevelStep from './steps/ActivityLevelStep';
+import ExerciseAvailabilityStep from './steps/ExerciseAvailabilityStep';
+import HealthConditionsStep from './steps/HealthConditionsStep';
 
 const OnboardingForm = ({ formData, setFormData, onSubmit }) => {
   const [currentStep, setCurrentStep] = useState(1);

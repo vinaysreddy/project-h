@@ -7,8 +7,8 @@ import {
   ListChecks, RefreshCw, Heart, Timer, HelpCircle,
   BarChart3
 } from 'lucide-react';
-import WorkoutPlanGenerator from './WorkoutPlanGenerator';
-import ExerciseCard from './ExerciseCard';
+import WorkoutPlanGenerator from './components/WorkoutPlanGenerator';
+import ExerciseCard from './components/ExerciseCard';
 
 const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
   const [activeDay, setActiveDay] = useState('day1');

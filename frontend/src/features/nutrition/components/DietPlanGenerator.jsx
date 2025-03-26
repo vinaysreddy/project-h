@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Utensils, RefreshCw, AlertCircle } from 'lucide-react';
-import { fetchDietPlan } from '../../services/dietPlanService';
+import { fetchDietPlan } from '../services/nutritionService';
 
 const DietPlanGenerator = ({ userData, healthMetrics, onDietPlanGenerated }) => {
   const [isLoading, setIsLoading] = useState(false);

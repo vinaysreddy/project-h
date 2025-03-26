@@ -6,8 +6,10 @@ import {
   signOut, 
   onAuthStateChanged 
 } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import { auth } from '../services/firebase/config';
+import axios from 'axios';
 
+const API_URL = 'http://localhost:3000';
 const AuthContext = createContext();
 
 export function useAuth() {
@@ -16,30 +18,123 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [onboardingData, setOnboardingData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Sign in with Google
+  // Sign in with Google and register with backend
   async function signInWithGoogle() {
     const provider = new GoogleAuthProvider();
     try {
+      // 1. Authenticate with Firebase
       const result = await signInWithPopup(auth, provider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      
-      // Get the token
       const token = await result.user.getIdToken();
+      
+      // 2. Register with backend
+      await axios.post(`${API_URL}/auth/signup`, {
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL,
+        uid: result.user.uid
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      // 3. Get user data from backend
+      await fetchUserData(token);
       
       return { 
         token, 
         user: result.user 
       };
     } catch (error) {
-      console.error("Google sign in error:", error);
+      console.error("Authentication error:", error);
+      throw error;
+    }
+  }
+
+  // Fetch user data from backend
+  async function fetchUserData(tokenParam) {
+    try {
+      const token = tokenParam || await getToken();
+      
+      const response = await axios.get(`${API_URL}/auth/user`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      setUserProfile(response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      return null;
+    }
+  }
+
+  // Fetch onboarding data
+  async function fetchOnboardingData() {
+    try {
+      const token = await getToken();
+      
+      const response = await axios.get(`${API_URL}/onboarding`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      setOnboardingData(response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching onboarding data:", error);
+      return null;
+    }
+  }
+
+  // Submit onboarding data
+  async function submitOnboardingData(data) {
+    try {
+      const token = await getToken();
+      
+      const response = await axios.post(`${API_URL}/onboarding`, data, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      setOnboardingData(response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error submitting onboarding data:", error);
+      throw error;
+    }
+  }
+
+  // Update onboarding data
+  async function updateOnboardingData(data) {
+    try {
+      const token = await getToken();
+      
+      const response = await axios.put(`${API_URL}/onboarding`, data, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      setOnboardingData(response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating onboarding data:", error);
       throw error;
     }
   }
 
   // Sign out
   function logout() {
+    setUserProfile(null);
+    setOnboardingData(null);
     return signOut(auth);
   }
 
@@ -59,8 +154,20 @@ export function AuthProvider({ children }) {
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      
+      if (user) {
+        try {
+          // Auto-fetch user data when signed in
+          const token = await user.getIdToken();
+          await fetchUserData(token);
+          await fetchOnboardingData();
+        } catch (error) {
+          console.error("Error fetching initial data:", error);
+        }
+      }
+      
       setLoading(false);
     });
 
@@ -69,9 +176,15 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
+    userProfile,
+    onboardingData,
     signInWithGoogle,
     logout,
-    getToken
+    getToken,
+    fetchUserData,
+    fetchOnboardingData,
+    submitOnboardingData,
+    updateOnboardingData
   };
 
   return (

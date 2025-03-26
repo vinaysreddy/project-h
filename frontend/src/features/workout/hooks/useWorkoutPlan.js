@@ -3,8 +3,8 @@ Handles loading/error states for workout data
  */
 
 import { useState, useEffect } from 'react';
-import { fetchWorkoutPlan } from '../services/workoutPlanService';
-import { transformWorkoutPlanData } from '../utils/workoutPlanTransformer';
+import { fetchWorkoutPlan } from '../services/workoutService';
+import { transformWorkoutPlanData } from '../utils/workoutDataFormatter';
 
 /**
  * Custom hook to fetch and manage workout plan data

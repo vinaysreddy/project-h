@@ -1,110 +1,93 @@
 import React, { useState, useEffect } from 'react';
-import * as calculations from '@/utils/calculations';
-import DashboardHeader from './DashboardHeader';
+import * as calculations from '@/utils/healthMetricsCalculator';
+import DashboardHeader from './components/DashboardHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, UtensilsCrossed, LineChart, Layout } from 'lucide-react';
-import OverviewTab from './OverviewTab';
+import OverviewTab from './tabs/OverviewTab/OverviewTab';
 import NutritionTab from '../nutrition/NutritionCard';
-import WorkoutTab from '../fitness/WorkoutTab';
+import WorkoutTab from '../workout/WorkoutTab';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Dashboard = () => {
-  const { currentUser, getToken } = useAuth();
+  const { currentUser, userProfile, onboardingData, fetchUserData, fetchOnboardingData } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
   const [healthMetrics, setHealthMetrics] = useState({});
-  const [rawApiResponse, setRawApiResponse] = useState(null); // For debugging
+  const [rawApiResponse, setRawApiResponse] = useState(null);
 
-  // Fetch user profile data from backend
+  // Fetch user data and process it
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const loadUserData = async () => {
       try {
         setIsLoading(true);
         
-        // Get the authentication token - handle case where getToken might not exist
-        let token;
-        if (typeof getToken === 'function') {
-          token = await getToken();
-        } else if (currentUser) {
-          // Fallback method to get token if getToken isn't available
-          token = await currentUser.getIdToken(true);
-        } else {
-          throw new Error('Cannot get authentication token');
-        }
-        
-        // Fetch user profile data from backend
-        const response = await fetch('http://localhost:3000/api/profile', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch user data: ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
-        console.log('Raw API response:', responseData); // Log the raw response
-        setRawApiResponse(responseData); // Store for debugging
-        
-        // Extract data from the nested structure
-        const { profile } = responseData;
+        // Ensure we have both user profile and onboarding data
+        let profile = userProfile;
+        let onboarding = onboardingData;
         
         if (!profile) {
-          throw new Error('Profile data structure is not as expected');
+          profile = await fetchUserData();
         }
         
-        // Extract the needed data from the nested structure
-        const basicInfo = profile.basicInfo || {};
-        const userProfile = profile.profile || {};
+        if (!onboarding) {
+          onboarding = await fetchOnboardingData();
+        }
+
+        if (!profile) {
+          throw new Error('Could not retrieve user profile');
+        }
         
-        // Format data to match your app's expected structure
+        // Store raw data for debugging
+        setRawApiResponse({ profile, onboarding });
+        
+        // Format data from both API responses
         const formattedUserData = {
-          displayName: basicInfo.name || '',
-          email: basicInfo.email || '',
+          // From user profile
+          displayName: profile.displayName || '',
+          email: profile.email || '',
           photoURL: profile.photoURL || '',
-          dateOfBirth: userProfile.dob || '',
-          gender: userProfile.gender || '',
-          height: userProfile.height_in_cm || 0,
-          weight: userProfile.weight_in_kg || 0,
+          
+          // From onboarding data (adjust these based on your actual API response structure)
+          dateOfBirth: onboarding?.dob || '',
+          gender: onboarding?.gender || '',
+          height: onboarding?.height_in_cm || 0,
+          weight: onboarding?.weight_in_kg || 0,
           heightUnit: 'cm',  // Backend stores in cm
           weightUnit: 'kg',  // Backend stores in kg
-          primaryGoal: userProfile.primary_fitness_goal || '',
-          targetWeight: userProfile.target_weight || 0,
-          activityLevel: userProfile.daily_activity_level || '',
-          weeklyExercise: userProfile.exercise_availability || '',
-          healthConditions: userProfile.health_conditions || [],
-          otherCondition: userProfile.other_medical_conditions || ''
+          primaryGoal: onboarding?.primary_fitness_goal || '',
+          targetWeight: onboarding?.target_weight || 0,
+          activityLevel: onboarding?.daily_activity_level || '',
+          weeklyExercise: onboarding?.exercise_availability || '',
+          healthConditions: onboarding?.health_conditions || [],
+          otherCondition: onboarding?.other_medical_conditions || ''
         };
         
         console.log('Formatted user data:', formattedUserData);
         setUserData(formattedUserData);
         
-        // Calculate health metrics only if we have height and weight
+        // Calculate health metrics
         if (formattedUserData.height && formattedUserData.weight) {
           calculateHealthMetrics(formattedUserData);
         } else {
           console.warn('Missing height or weight data for calculations');
         }
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('Error loading dashboard data:', error);
         setError(error.message);
       } finally {
-        // Delay slightly for better UX
         setTimeout(() => setIsLoading(false), 600);
       }
     };
     
     if (currentUser) {
-      fetchUserProfile();
+      loadUserData();
     } else {
       setIsLoading(false);
       setError("No authenticated user found. Please log in.");
     }
-  }, [currentUser, getToken]);
+  }, [currentUser, userProfile, onboardingData, fetchUserData, fetchOnboardingData]);
 
   // Add a debug panel at the bottom when in development mode
   const isDevelopment = process.env.NODE_ENV === 'development';

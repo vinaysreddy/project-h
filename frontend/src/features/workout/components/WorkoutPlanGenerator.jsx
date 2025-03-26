@@ -2,7 +2,7 @@
 Shows loading and error states during plan creation */
 
 import React, { useEffect } from 'react';
-import useWorkoutPlan from '../../hooks/useWorkoutPlan';
+import useWorkoutPlan from '../hooks/useWorkoutPlan';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 /**

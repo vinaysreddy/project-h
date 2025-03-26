@@ -2,8 +2,8 @@
 Handles loading and error states */
 
 import { useState, useEffect } from 'react';
-import { fetchDietPlan } from '../services/dietPlanService';
-import { transformDietPlanData } from '../utils/dietPlanTransformer';
+import { fetchDietPlan } from '../services/nutritionService';
+import { transformDietPlanData } from '../utils/nutritionDataFormatter';
 
 /**
  * Custom hook to fetch and manage diet plan data

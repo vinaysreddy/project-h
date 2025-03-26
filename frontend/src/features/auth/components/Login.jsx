@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { FcGoogle } from 'react-icons/fc';
-import { authenticateUser, saveUserBasicDetails } from '../../services/authService';
+import { authenticateUser } from '../services/authService';
 
 const Login = ({ onLoginSuccess, formData }) => {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, submitOnboardingData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -17,63 +17,46 @@ const Login = ({ onLoginSuccess, formData }) => {
       // Call Firebase authentication through the AuthContext
       const { token, user } = await signInWithGoogle();
 
-      // Format the onboarding data for the backend
-      const backendData = {
-        questionnaireData: {
-          dob: formData.dateOfBirth,
-          gender: formData.gender?.toLowerCase() || '',
-          // Convert height to cm if needed
-          height_in_cm: formData.heightUnit === 'cm' ?
-            parseInt(formData.height) :
-            Math.round(parseInt(formData.height) * 2.54),
-          // Convert weight to kg if needed
-          weight_in_kg: formData.weightUnit === 'kg' ?
-            parseInt(formData.weight) :
-            Math.round(parseInt(formData.weight) / 2.205),
-          primary_fitness_goal: formData.primaryGoal,
-          target_weight: parseInt(formData.targetWeight || '0'),
-          daily_activity_level: formData.activityLevel,
-          exercise_availability: formData.weeklyExercise,
-          health_conditions: formData.healthConditions || [],
-          other_medical_conditions: formData.otherCondition || ''
-        }
-      };
-
-      // Send user data and token to backend
+      // Send user data and token to backend for authentication
       await authenticateUser(token, {
-        ...backendData,
         email: user.email,
         displayName: user.displayName,
         photoURL: user.photoURL,
         uid: user.uid
       });
 
-      // After successful login, also send the onboarding data
-      if (formData) {
-        const formattedData = {
-          dob: formData.dateOfBirth,
-          gender: formData.gender?.toLowerCase() || '',
-          height_in_cm: formData.heightUnit === 'cm' ?
-            parseInt(formData.height || '0') :
-            Math.round(parseInt(formData.height || '0') * 2.54),
-          weight_in_kg: formData.weightUnit === 'kg' ?
-            parseInt(formData.weight || '0') :
-            Math.round(parseInt(formData.weight || '0') / 2.205),
-          primary_fitness_goal: formData.primaryGoal || '',
-          target_weight: parseInt(formData.targetWeight || '0'),
-          daily_activity_level: formData.activityLevel || '',
-          exercise_availability: formData.weeklyExercise || '',
-          health_conditions: formData.healthConditions || [],
-          other_medical_conditions: formData.otherCondition || ''
-        };
-
+      // After successful authentication, submit onboarding data if available
+      if (formData && Object.keys(formData).filter(key => !!formData[key]).length > 0) {
         try {
-          await saveUserBasicDetails(token, formattedData);
+          // Format the onboarding data for the backend
+          const onboardingPayload = {
+            dob: formData.dateOfBirth,
+            gender: formData.gender?.toLowerCase() || '',
+            // Convert height to cm if needed
+            height_in_cm: formData.heightUnit === 'cm' ?
+              parseInt(formData.height || '0') :
+              Math.round(parseInt(formData.height || '0') * 2.54),
+            // Convert weight to kg if needed
+            weight_in_kg: formData.weightUnit === 'kg' ?
+              parseInt(formData.weight || '0') :
+              Math.round(parseInt(formData.weight || '0') / 2.205),
+            primary_fitness_goal: formData.primaryGoal || '',
+            target_weight: parseInt(formData.targetWeight || '0'),
+            daily_activity_level: formData.activityLevel || '',
+            exercise_availability: formData.weeklyExercise || '',
+            health_conditions: formData.healthConditions || [],
+            other_medical_conditions: formData.otherCondition || ''
+          };
+          
+          // Submit onboarding data using the new method from AuthContext
+          await submitOnboardingData(onboardingPayload);
         } catch (onboardingError) {
+          // Log error but continue - we don't want to block login if onboarding data fails
           console.warn('Failed to save onboarding data, but login was successful', onboardingError);
         }
       }
 
+      // Proceed to dashboard after successful login
       onLoginSuccess();
       
     } catch (error) {

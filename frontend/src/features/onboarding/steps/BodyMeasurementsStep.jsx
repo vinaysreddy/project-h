@@ -1,5 +1,5 @@
 import React from 'react';
-import { cmToInches, kgToLbs } from '@/utils/calculations';
+import { cmToInches, kgToLbs } from '@/utils/healthMetricsCalculator';
 
 const BodyMeasurementsStep = ({ formData, handleInputChange }) => {
   return (
