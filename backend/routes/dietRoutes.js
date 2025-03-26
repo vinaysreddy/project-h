@@ -44,6 +44,7 @@ router.post("/gen", authenticateUser, async (req, res) => {
 });
 
 // Get or Generate Diet Plan
+// Get Diet Plan
 router.get("/plan", authenticateUser, async (req, res) => {
     try {
         const { uid } = req.user;
@@ -54,14 +55,16 @@ router.get("/plan", authenticateUser, async (req, res) => {
             return res.status(200).json(dietDoc.data());
         }
 
-        // Call OpenAI API (Skipping actual integration)
-        const generatedPlan = { plan: "Generated diet plan from AI" };
-
-        await dietRef.set(generatedPlan);
-
-        res.status(200).json(generatedPlan);
+        return res.status(404).json({
+            message: "No diet plan found for this user",
+            error: "Please generate a diet plan first using the /gen endpoint"
+        });
     } catch (error) {
-        res.status(500).json({ message: "Error fetching/generating diet plan", error: error.message });
+        console.error("Error fetching diet plan:", error);
+        res.status(500).json({ 
+            message: "Error fetching diet plan", 
+            error: error.message 
+        });
     }
 });
 
