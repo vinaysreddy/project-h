@@ -1,32 +1,22 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import authRoutes from './routes/authRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-import questionnaireRoutes from './routes/questionnaireRoutes.js';
-import planRoutes from './routes/planRoutes.js';
+import express from "express";
+import cors from "cors";
+import { db } from "./config/firebase.js"; // Firestore instance
+import authenticateUser from "./middleware/authenticateUser.js";
 
-// Load environment variables
-dotenv.config();
+// Import Routes
+import authRoutes from "./routes/authRoutes.js";
+import questionnaireRoutes from "./routes/questionnaireRoutes.js";
+import workoutRoutes from "./routes/workoutRoutes.js";
+import dietRoutes from "./routes/dietRoutes.js";
 
-// Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Middlewares
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/questionnaires', questionnaireRoutes);
-app.use('/api/plans', planRoutes);
+// Use Routes
+app.use("/auth", authRoutes);  //signup,user
+app.use("/onboarding", questionnaireRoutes);
+app.use("/workout", workoutRoutes);
+app.use("/diet", dietRoutes);
 
-// Root route for API health check
-
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+app.listen(3000, () => console.log("Server running on port 3000"));

@@ -1,24 +1,30 @@
-import express from 'express';
-import { 
-    getFitnessQuestionnaire, 
-    getDietQuestionnaire,
-    submitFitnessQuestionnaire,
-    submitDietQuestionnaire 
-} from '../controllers/questionnaireController.js';
-import { checkAuthentication } from '../middleware/auth.js';
+import express from "express";
+import { db } from "../config/firebase.js";
+import authenticateUser from "../middleware/authenticateUser.js";
 
 const router = express.Router();
 
-// Retrieve a specific fitness questionnaire by ID
-router.get('/fitness/:questionnaireId', checkAuthentication, getFitnessQuestionnaire);
+// Store User Questionnaire **AFTER** Login
+router.post("/", authenticateUser, async (req, res) => {
+    try {
+        const { uid } = req.user; // Get user ID from Firebase Auth
+        const data = req.body;
 
-// Retrieve a specific diet questionnaire by ID
-router.get('/diet/:questionnaireId', checkAuthentication, getDietQuestionnaire);
+        // Check if questionnaire already exists
+        const docRef = db.collection("user_questionnaire").doc(uid);
+        const doc = await docRef.get();
 
-// Submit a new fitness questionnaire for workout plan generation
-router.post('/fitness', checkAuthentication, submitFitnessQuestionnaire);
+        if (doc.exists) {
+            return res.status(400).json({ message: "Questionnaire already exists for this user" });
+        }
 
-// Submit a new diet questionnaire for diet plan generation
-router.post('/diet', checkAuthentication, submitDietQuestionnaire);
+        // Store questionnaire in Firestore
+        await docRef.set(data);
+
+        res.status(200).json({ message: "Questionnaire saved successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error storing questionnaire", error: error.message });
+    }
+});
 
 export default router;
