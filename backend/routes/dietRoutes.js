@@ -21,7 +21,7 @@ router.post("/questionnaire", authenticateUser, async (req, res) => {
 });
 
 // Generate Diet Plan from Questionnaire
-router.post("/questionnaire/gen", authenticateUser, async (req, res) => {
+router.post("/gen", authenticateUser, async (req, res) => {
     try {
         const { uid } = req.user;
 
