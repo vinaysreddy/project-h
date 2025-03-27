@@ -1,76 +1,88 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { FcGoogle } from 'react-icons/fc';
-import { authenticateUser } from '../services/authService';
 
+/**
+ * Login component that handles Google authentication and onboarding data submission
+ */
 const Login = ({ onLoginSuccess, formData }) => {
   const { signInWithGoogle, submitOnboardingData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  /**
+   * Format form data for backend submission
+   */
+  const prepareOnboardingData = (data) => {
+    return {
+      dob: data.dateOfBirth,
+      gender: data.gender?.toLowerCase() || '',
+      height_in_cm: data.heightUnit === 'cm' 
+        ? parseInt(data.height || '0') 
+        : Math.round(parseInt(data.height || '0') * 2.54),
+      weight_in_kg: data.weightUnit === 'kg'
+        ? parseInt(data.weight || '0')
+        : Math.round(parseInt(data.weight || '0') / 2.205),
+      primary_fitness_goal: data.primaryGoal || '',
+      target_weight: parseInt(data.targetWeight || '0'),
+      daily_activity_level: data.activityLevel || '',
+      exercise_availability: data.weeklyExercise || '',
+      health_conditions: data.healthConditions || [],
+      other_medical_conditions: data.otherCondition || ''
+    };
+  };
+
+  /**
+   * Handle Google sign-in and onboarding data submission
+   */
   const handleGoogleSignIn = async () => {
+    console.log("🔄 Starting login process...");
+    setLoading(true);
+    setError('');
+    
     try {
-      // Start loading state and clear any previous errors
-      setLoading(true);
-      setError('');
-      
-      // Call Firebase authentication through the AuthContext
+      console.log("🔄 Initiating Google authentication...");
+      // Authenticate with Google
       const { token, user } = await signInWithGoogle();
-
-      // Send user data and token to backend for authentication
-      await authenticateUser(token, {
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        uid: user.uid
-      });
-
-      // After successful authentication, submit onboarding data if available
-      if (formData && Object.keys(formData).filter(key => !!formData[key]).length > 0) {
+      console.log("✅ Google authentication successful", user.email);
+      
+      // Submit onboarding data if available
+      if (formData && Object.keys(formData).some(key => !!formData[key])) {
+        console.log("🔄 Onboarding data available, preparing for submission...");
+        console.log("📋 Original form data:", formData);
+        
         try {
-          // Format the onboarding data for the backend
-          const onboardingPayload = {
-            dob: formData.dateOfBirth,
-            gender: formData.gender?.toLowerCase() || '',
-            // Convert height to cm if needed
-            height_in_cm: formData.heightUnit === 'cm' ?
-              parseInt(formData.height || '0') :
-              Math.round(parseInt(formData.height || '0') * 2.54),
-            // Convert weight to kg if needed
-            weight_in_kg: formData.weightUnit === 'kg' ?
-              parseInt(formData.weight || '0') :
-              Math.round(parseInt(formData.weight || '0') / 2.205),
-            primary_fitness_goal: formData.primaryGoal || '',
-            target_weight: parseInt(formData.targetWeight || '0'),
-            daily_activity_level: formData.activityLevel || '',
-            exercise_availability: formData.weeklyExercise || '',
-            health_conditions: formData.healthConditions || [],
-            other_medical_conditions: formData.otherCondition || ''
-          };
+          const onboardingPayload = prepareOnboardingData(formData);
+          console.log("📋 Formatted onboarding data:", onboardingPayload);
           
-          // Submit onboarding data using the new method from AuthContext
-          await submitOnboardingData(onboardingPayload);
+          console.log("🔄 Submitting onboarding data...");
+          await submitOnboardingData(onboardingPayload, token);
+          console.log("✅ Onboarding data submitted successfully");
         } catch (onboardingError) {
-          // Log error but continue - we don't want to block login if onboarding data fails
-          console.warn('Failed to save onboarding data, but login was successful', onboardingError);
+          console.warn("⚠️ Onboarding data submission failed:", onboardingError.message);
+          console.warn("⚠️ Continuing with login despite onboarding failure");
+          // Continue with login - don't block on onboarding failure
         }
+      } else {
+        console.log("ℹ️ No onboarding data to submit");
       }
 
-      // Proceed to dashboard after successful login
+      console.log("✅ Login process complete, navigating to dashboard...");
+      // Navigate to dashboard
       onLoginSuccess();
-      
     } catch (error) {
-      // Handle and display any errors
-      console.error('Login error:', error);
+      console.error("❌ Authentication error:", error);
+      console.error("❌ Error details:", error.code, error.message);
       setError(error.message || 'Failed to sign in with Google. Please try again.');
     } finally {
-      // Always reset loading state regardless of success or failure
       setLoading(false);
+      console.log("🔄 Login process finished");
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center p-8 bg-white rounded-xl shadow-lg max-w-md mx-auto border border-gray-100">
+      {/* Header */}
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Your Personal Fitness Plan is Ready!</h2>
         <div className="h-1 w-32 mx-auto bg-gradient-to-r from-[#e72208] via-[#3E7B27] to-[#4D55CC] rounded-full"></div>
@@ -79,7 +91,7 @@ const Login = ({ onLoginSuccess, formData }) => {
         </p>
       </div>
 
-      {/* Error message display */}
+      {/* Error message */}
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 w-full text-red-700 text-sm rounded">
           <div className="flex items-center">
@@ -98,21 +110,17 @@ const Login = ({ onLoginSuccess, formData }) => {
           disabled={loading}
           className="flex items-center justify-center w-full py-5 px-6 rounded-lg shadow-md transition-all duration-300 relative overflow-hidden bg-gradient-to-r from-[#e72208]/10 via-[#3E7B27]/10 to-[#4D55CC]/10 hover:from-[#e72208]/20 hover:via-[#3E7B27]/20 hover:to-[#4D55CC]/20 border-2 border-[#4D55CC]/20 hover:border-[#4D55CC]/40 hover:shadow-lg group"
         >
-          {/* Colored left border with animation */}
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#e72208] via-[#3E7B27] to-[#4D55CC] group-hover:w-1.5 transition-all duration-300"></div>
           
           <div className="flex items-center justify-center">
-            {/* Google icon */}
             <div className="bg-white p-2 rounded-full shadow-sm mr-4">
               <FcGoogle className="w-6 h-6" />
             </div>
             
-            {/* Button text */}
             <span className="font-semibold text-gray-800 text-lg">
               {loading ? 'Signing in...' : 'Continue with Google'}
             </span>
             
-            {/* Loading spinner */}
             {loading && (
               <svg className="animate-spin ml-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

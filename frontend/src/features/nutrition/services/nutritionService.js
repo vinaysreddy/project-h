@@ -1,102 +1,115 @@
-/* Handles API calls to fetch diet plans */
+/* Handles API calls for nutrition-related functionality */
 
 import axios from 'axios';
 
+const API_URL = 'http://localhost:3000';
+
 /**
- * Fetches a diet plan from the API
- * @param {Object} userData - User data and preferences
- * @returns {Promise<Object>} - The diet plan data
+ * Fetches user's existing diet questionnaire data
+ * @param {string} token - Authentication token
+ * @returns {Promise<Object>} - Response data
  */
-export const fetchDietPlan = async (userData) => {
+export const getDietQuestionnaire = async (token) => {
   try {
-    // If the user already has diet preferences, use those directly
-    if (userData.dietPreference) {
-      console.log('Using existing diet preferences');
-    }
+    console.log('Fetching user diet questionnaire');
     
-    // Prepare the request payload
-    const payload = {
-      calories: userData.calorieTarget || 2000,
-      protein: userData.macros?.protein || 150, // In grams
-      carbs: userData.macros?.carbs || 200,     // In grams
-      fats: userData.macros?.fat || 70,         // In grams
-      meals_per_day: userData.mealsPerDay || 4,
-      diet_type: userData.dietPreference || userData.dietType || 'balanced',
-      food_restrictions: userData.foodRestrictions || [],
-      allergies: userData.allergies || [],
-      goal: mapGoalToApiFormat(userData.primaryGoal)
-    };
-
-    console.log('Sending diet plan generation request with payload:', payload);
-
-    // Get auth token - ensure userData.getToken is available
-    let token;
-    if (typeof userData.getToken === 'function') {
-      token = await userData.getToken();
-    } else {
-      // Assume token is passed directly
-      token = userData.token;
-    }
-
-    if (!token) {
-      console.warn('No authentication token available for diet plan API call');
-    }
-
-    // Make the API call - ensure correct endpoint
-    const response = await axios.post('http://localhost:3000/api/plans/generate-diet-plan', payload, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    // Note: You may need to create this endpoint on the backend if it doesn't exist
+    const response = await axios.get(`${API_URL}/diet/questionnaire`, {
+      headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('Received diet plan response:', response.status);
+    console.log('Diet questionnaire fetched successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching diet questionnaire:', error);
+    handleApiError(error, 'Failed to fetch diet questionnaire');
+  }
+};
+
+/**
+ * Submits diet questionnaire data
+ * @param {Object} data - The diet questionnaire data
+ * @param {string} token - Authentication token
+ * @returns {Promise<Object>} - Response data
+ */
+export const submitDietQuestionnaire = async (data, token) => {
+  try {
+    console.log('Submitting diet questionnaire:', data);
     
-    // Return the data
+    const response = await axios.post(`${API_URL}/diet/questionnaire`, data, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    console.log('Diet questionnaire submitted successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting diet questionnaire:', error);
+    handleApiError(error, 'Failed to submit diet questionnaire');
+  }
+};
+
+/**
+ * Generates a diet plan based on user data and preferences
+ * @param {Object} userData - User data and preferences
+ * @param {string} token - Authentication token
+ * @returns {Promise<Object>} - The generated diet plan
+ */
+export const generateDietPlan = async (userData, token) => {
+  try {
+    console.log('Generating diet plan with data:', userData);
+    
+    const response = await axios.post(`${API_URL}/diet/gen`, userData, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    console.log('Diet plan generated successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error generating diet plan:', error);
+    handleApiError(error, 'Failed to generate diet plan');
+  }
+};
+
+/**
+ * Retrieves the user's diet plan
+ * @param {string} token - Authentication token
+ * @returns {Promise<Object>} - The user's diet plan
+ */
+export const getDietPlan = async (token) => {
+  try {
+    console.log('Fetching diet plan');
+    
+    const response = await axios.get(`${API_URL}/diet/plan`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    console.log('Diet plan fetched successfully:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching diet plan:', error);
-    
-    // Get more detailed error information
-    let errorMessage = 'Failed to generate diet plan';
-    
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      errorMessage = `Server error: ${error.response.status} - ${error.response.data.message || error.response.statusText}`;
-      console.error('Error details:', error.response.data);
-    } else if (error.request) {
-      // The request was made but no response was received
-      errorMessage = 'No response from server. Please check your connection.';
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      errorMessage = error.message;
-    }
-    
-    // Throw a user-friendly error that can be displayed in the UI
-    throw new Error(errorMessage);
+    handleApiError(error, 'Failed to fetch diet plan');
   }
 };
 
 /**
- * Maps the user's primary goal to the API's expected format
+ * Common error handling function
  */
-const mapGoalToApiFormat = (goal) => {
-  if (!goal) return 'maintenance';
+const handleApiError = (error, defaultMessage) => {
+  let errorMessage = defaultMessage;
   
-  switch (goal.toLowerCase()) {
-    case 'lose_weight':
-      return 'weight_loss';
-    case 'gain_muscle':
-      return 'muscle_gain';
-    case 'maintain_weight':
-      return 'maintenance';
-    case 'improve_endurance':
-      return 'performance';
-    case 'general_wellness':
-      return 'wellness';
-    default:
-      return 'maintenance';
+  if (error.response) {
+    errorMessage = `Server error: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`;
+    console.error('Error details:', error.response.data);
+  } else if (error.request) {
+    errorMessage = 'No response from server. Please check your connection.';
   }
+  
+  throw new Error(errorMessage);
 };
 
 export default {
-  fetchDietPlan
+  getDietQuestionnaire,
+  submitDietQuestionnaire,
+  generateDietPlan,
+  getDietPlan
 };

@@ -85,6 +85,7 @@ const DietQuestionnaire = ({ userData, healthMetrics, onSubmit }) => {
     if (e) e.preventDefault();
     
     try {
+      console.log("🔄 Processing form data for diet questionnaire submission...");
       // Process any "other" fields
       const processedData = { ...formData };
       
@@ -117,28 +118,30 @@ const DietQuestionnaire = ({ userData, healthMetrics, onSubmit }) => {
           ...otherRestrictionsArray
         ];
       }
-      
-      // Prepare data in the format expected by the backend
+
       const dietInputData = {
         goal: processedData.goal,
-        totalCalories: healthMetrics.calorieTarget || 2000,
-        totalProtein: healthMetrics.macros?.protein || 150,
-        totalCarbs: healthMetrics.macros?.carbs || 200,
-        totalFats: healthMetrics.macros?.fat || 70,
-        dietType: processedData.dietType,
-        mealsPerDay: processedData.mealsPerDay,
-        foodRestrictions: processedData.foodRestrictions,
-        allergies: processedData.allergies
+        calories: healthMetrics.calorieTarget || 2000,
+        protein: healthMetrics.macros?.protein || 150,
+        carbs: healthMetrics.macros?.carbs || 200,
+        fats: healthMetrics.macros?.fat || 70,
+        diet_type: processedData.dietType,
+        meals_per_day: processedData.mealsPerDay,
+        food_restrictions: processedData.foodRestrictions,
+        allergies: processedData.allergies,
+        // Include all other data for future use
+        snacks: processedData.snacks,
+        mealPrepPreference: processedData.mealPrepPreference,
+        guidanceType: processedData.guidanceType,
+        cuisinePreferences: processedData.cuisinePreferences
       };
       
-      console.log('Submitting diet preferences:', dietInputData);
-      
-      // Call the parent component's onSubmit handler with the processed data
+      console.log("📋 Formatted data ready for backend:", dietInputData);
+    
       await onSubmit(dietInputData);
       
     } catch (error) {
-      console.error('Error in diet questionnaire submission:', error);
-      // The onSubmit function will handle the error message display
+      console.error("❌ Error in diet questionnaire submission:", error);
     }
   };
 

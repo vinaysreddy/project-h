@@ -12,8 +12,14 @@ import { LightbulbIcon } from 'lucide-react';
 import { CircleCheckBig } from 'lucide-react';
 import DietQuestionnaire from './components/DietQuestionnaire';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
 import { Button } from '@/components/ui/button';
+import { transformDietPlanData } from './utils/nutritionDataFormatter';
+import { 
+  getDietQuestionnaire,
+  submitDietQuestionnaire,
+  generateDietPlan,
+  getDietPlan
+} from './services/nutritionService';
 
 const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
   const { currentUser, getToken } = useAuth();
@@ -34,36 +40,51 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
   // Check if user has existing diet preferences
   useEffect(() => {
     const checkDietPreferences = async () => {
+      console.log("🔄 Starting diet preferences check flow...");
       try {
         setIsLoadingPreferences(true);
         
         // Get auth token
-        const token = typeof getToken === 'function' 
-          ? await getToken() 
-          : await currentUser?.getIdToken(true);
+        const token = await getToken();
+        console.log("✅ Authentication token obtained");
         
         if (!token) {
+          console.error("❌ No auth token available");
           throw new Error('Authentication required');
         }
         
-        // Fetch user's diet data
-        const response = await axios.get('http://localhost:3000/api/profile', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        console.log('Diet preferences API response:', response.data);
+        // Fetch user's diet data using the service function
+        console.log("🔄 Fetching user diet questionnaire data...");
+        const response = await getDietQuestionnaire(token);
+        console.log("📋 Diet questionnaire API response:", response);
         
         // If we have diet data, store it
-        if (response.data && response.data.dietData) {
-          setDietPreferences(response.data.dietData);
+        if (response && response.data) {
+          console.log("✅ Diet preferences found in backend");
+          setDietPreferences(response.data);
           setShowQuestionnaire(false);
+          
+          // Also fetch the existing diet plan if available
+          try {
+            console.log("🔄 Fetching existing diet plan...");
+            const dietPlanResponse = await getDietPlan(token);
+            console.log("📋 Diet plan response:", dietPlanResponse);
+            
+            if (dietPlanResponse && dietPlanResponse.meal_plan) {
+              console.log("🔄 Transforming diet plan data...");
+              const formattedDietPlan = transformDietPlanData(dietPlanResponse);
+              console.log("📋 Formatted diet plan:", formattedDietPlan);
+              setDietPlan(formattedDietPlan);
+            }
+          } catch (planError) {
+            console.log("⚠️ No existing diet plan or error fetching it", planError);
+          }
         } else {
-          // No diet data, show questionnaire
+          console.log("ℹ️ No diet preferences found, showing questionnaire");
           setShowQuestionnaire(true);
         }
       } catch (error) {
-        console.error('Error checking diet preferences:', error);
-        // If there's an error, show the questionnaire
+        console.error("❌ Error checking diet preferences:", error);
         setShowQuestionnaire(true);
       } finally {
         setIsLoadingPreferences(false);
@@ -75,16 +96,14 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
     }
   }, [currentUser, getToken]);
   
-  // Handle diet preferences submission
+  // Update handleDietPreferencesSubmit function
   const handleDietPreferencesSubmit = async (preferencesData) => {
     try {
       setSubmissionError(null);
       setIsLoadingPreferences(true);
       
       // Get auth token
-      const token = typeof getToken === 'function' 
-        ? await getToken() 
-        : await currentUser?.getIdToken(true);
+      const token = await getToken();
       
       if (!token) {
         throw new Error('Authentication required');
@@ -92,32 +111,46 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
       
       console.log('Submitting diet preferences to backend:', preferencesData);
       
-      // Send the diet preferences to the backend
-      const response = await axios.post(
-        'http://localhost:3000/api/plans/generate-diet', 
-        preferencesData, 
-        {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      const completeData = {
+        ...preferencesData,  // All the questionnaire data
+        // Add required fields with proper names
+        calories: healthMetrics.calorieTarget,
+        protein: healthMetrics.macros?.protein || 0,
+        carbs: healthMetrics.macros?.carbs || 0,
+        fats: healthMetrics.macros?.fat || 0,
+        diet_type: preferencesData.dietType,
+        meals_per_day: preferencesData.mealsPerDay,
+        food_restrictions: preferencesData.foodRestrictions,
+        allergies: preferencesData.allergies
+      };
       
-      console.log('Diet preferences submission response:', response.data);
+      // 1. Submit diet questionnaire
+      const questionnaireResponse = await submitDietQuestionnaire(completeData, token);
+      console.log('Diet questionnaire submission response:', questionnaireResponse);
       
-      // Update local state
-      setDietPreferences(preferencesData);
+      // 2. Generate diet plan - no need to send all the data again, backend will use stored questionnaire
+      const dietPlanResponse = await generateDietPlan({}, token);
+      console.log('Diet plan generation response:', dietPlanResponse);
+      
+      // 3. Get the generated plan
+      const planResponse = await getDietPlan(token);
+      console.log('Diet plan retrieval response:', planResponse);
+      
+      // Format the data using the utility function
+      if (planResponse && planResponse.meal_plan) {
+        const formattedDietPlan = transformDietPlanData(planResponse);
+        setDietPlan(formattedDietPlan);
+      }
+      
+      // Update preferences state and hide questionnaire
+      setDietPreferences(completeData);
       setShowQuestionnaire(false);
     } catch (error) {
-      console.error('Error saving diet preferences:', error);
+      console.error('Error in diet workflow:', error);
+      let errorMessage = 'Failed to process your diet preferences. Please try again.';
       
-      let errorMessage = 'Failed to save your diet preferences. Please try again.';
-      
-      if (error.response) {
-        // Get more specific error from the backend if available
-        errorMessage = error.response.data?.message || errorMessage;
-        console.error('Backend error details:', error.response.data);
+      if (error.message) {
+        errorMessage = error.message;
       }
       
       setSubmissionError(errorMessage);
@@ -127,8 +160,28 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
   };
   
   // Handle diet plan generated from the DietPlanGenerator
-  const handleDietPlanGenerated = (generatedPlan) => {
-    setDietPlan(generatedPlan);
+  const handleDietPlanGenerated = async (generatedPlan) => {
+    try {
+      // Get auth token
+      const token = typeof getToken === 'function' 
+        ? await getToken() 
+        : await currentUser?.getIdToken(true);
+        
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
+      // Save the generated plan to the backend using service function
+      await generateDietPlan({
+        plan: generatedPlan,
+        dietPreferences: dietPreferences
+      }, token);
+      
+      // Update local state
+      setDietPlan(generatedPlan);
+    } catch (error) {
+      console.error('Error saving generated diet plan:', error);
+    }
   };
   
   // Retry submitting the questionnaire
@@ -556,12 +609,6 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
             <CircleEllipsis className="h-4 w-4 inline mr-1" />
             Adjust your meals as needed based on preferences and availability
           </div>
-          <button 
-            onClick={() => setDietPlan(null)} 
-            className="text-[#3E7B27] font-medium text-sm hover:underline"
-          >
-            Regenerate Plan
-          </button>
         </CardFooter>
       </Card>
     </div>

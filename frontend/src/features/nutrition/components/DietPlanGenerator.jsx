@@ -5,41 +5,38 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Utensils, RefreshCw, AlertCircle } from 'lucide-react';
-import { fetchDietPlan } from '../services/nutritionService';
+import { generateDietPlan, getDietPlan } from '../services/nutritionService';
+import { transformDietPlanData } from '../utils/nutritionDataFormatter';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const DietPlanGenerator = ({ userData, healthMetrics, onDietPlanGenerated }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [hasMadeAttempt, setHasMadeAttempt] = useState(false);
-
-  // Prepare enhanced user data combining profile and health metrics
-  const enhancedUserData = {
-    ...userData,
-    calorieTarget: healthMetrics.calorieTarget,
-    macros: healthMetrics.macros,
-  };
+  const { getToken } = useAuth();
 
   // Function to generate diet plan 
-  const generateDietPlan = async () => {
+  const generateNewDietPlan = async () => {
     setIsLoading(true);
     setError(null);
     setHasMadeAttempt(true);
     
     try {
-      const dietPlanData = await fetchDietPlan(enhancedUserData);
+      const token = await getToken();
+      
+      // Generate the diet plan with minimal data - backend will use stored questionnaire
+      await generateDietPlan({}, token);
+      
+      // Then retrieve the generated plan
+      const dietPlanData = await getDietPlan(token);
       
       // Check if we have valid data
       if (!dietPlanData || !dietPlanData.meal_plan || dietPlanData.meal_plan.length === 0) {
         throw new Error('The diet plan was not generated correctly. Please try again.');
       }
       
-      // Format the data for the app
-      const formattedDietPlan = {};
-      
-      // Map the meal plan data to a format expected by the NutritionTab component
-      dietPlanData.meal_plan.forEach((day, index) => {
-        formattedDietPlan[`day${index + 1}`] = day;
-      });
+      // Format the data using the utility function
+      const formattedDietPlan = transformDietPlanData(dietPlanData);
       
       // Pass the formatted diet plan back to the parent component
       onDietPlanGenerated(formattedDietPlan);
@@ -54,7 +51,7 @@ const DietPlanGenerator = ({ userData, healthMetrics, onDietPlanGenerated }) => 
   // Auto-generate on first load
   useEffect(() => {
     if (!hasMadeAttempt) {
-      generateDietPlan();
+      generateNewDietPlan();
     }
   }, []);
 
@@ -116,7 +113,7 @@ const DietPlanGenerator = ({ userData, healthMetrics, onDietPlanGenerated }) => 
           </p>
           
           <Button 
-            onClick={generateDietPlan} 
+            onClick={generateNewDietPlan} 
             className="bg-[#3E7B27] hover:bg-[#2d5b1d]"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -162,7 +159,7 @@ const DietPlanGenerator = ({ userData, healthMetrics, onDietPlanGenerated }) => 
       </CardContent>
       <CardFooter className="flex justify-center">
         <Button 
-          onClick={generateDietPlan} 
+          onClick={generateNewDietPlan} 
           className="bg-[#3E7B27] hover:bg-[#2d5b1d]"
         >
           <Utensils className="h-4 w-4 mr-2" />

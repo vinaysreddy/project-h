@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
-  getAuth, 
   signInWithPopup, 
   GoogleAuthProvider, 
   signOut, 
@@ -22,106 +21,144 @@ export function AuthProvider({ children }) {
   const [onboardingData, setOnboardingData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Helper function to get token
+  async function getToken() {
+    console.log("🔑 Getting authentication token...");
+    if (!currentUser) {
+      console.log("❌ No current user found, cannot get token");
+      return null;
+    }
+    try {
+      const token = await currentUser.getIdToken(true);
+      console.log(token);
+      console.log("✅ Token retrieved successfully", token.substring(0, 15) + "...");
+      return token;
+    } catch (error) {
+      console.error("❌ Error getting token:", error);
+      return null;
+    }
+  }
+
   // Sign in with Google and register with backend
   async function signInWithGoogle() {
-    const provider = new GoogleAuthProvider();
+    console.log("🔄 Starting Google authentication process...");
     try {
-      // 1. Authenticate with Firebase
+      const provider = new GoogleAuthProvider();
+      console.log("🔄 Opening Google sign-in popup...");
       const result = await signInWithPopup(auth, provider);
+      console.log("✅ Google authentication successful:", result.user.email);
+      
       const token = await result.user.getIdToken();
       const uid = result.user.uid;
+      console.log("🔑 User ID:", uid);
+      console.log("🔄 Registering user with backend...");
       
-      // 2. Register with backend
-      await axios.post(`${API_URL}/auth/signup`, {
+      // Register with backend
+      const backendResponse = await axios.post(`${API_URL}/auth/signup`, {
         email: result.user.email,
         name: result.user.displayName,
         photoURL: result.user.photoURL,
         uid: uid
       }, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      // 3. Get user data from backend - pass the uid explicitly
-      await fetchUserData(token, uid);
-      
-      return { 
-        token, 
-        user: result.user 
-      };
+      console.log("✅ Backend registration successful", backendResponse.data);
+      return { token, user: result.user };
     } catch (error) {
-      console.error("Authentication error:", error);
+      console.error("❌ Authentication error:", error);
+      console.error("❌ Error details:", error.code, error.message);
       throw error;
     }
   }
 
   // Fetch user data from backend
-  async function fetchUserData(tokenParam, uidParam) {
+  async function fetchUserData() {
+    console.log("🔄 Fetching user profile data from backend...");
     try {
-      // Handle case when this is called with no auth yet
-      if (!currentUser && !uidParam) {
-        console.log("No user authenticated yet");
+      const token = await getToken();
+      if (!token || !currentUser) {
+        console.log("❌ Cannot fetch user data: Missing token or user");
         return null;
       }
       
-      const token = tokenParam || await getToken();
-      const uid = uidParam || currentUser.uid;
+      console.log(`🔄 GET request to: ${API_URL}/auth/user`);
+      console.log(`🔄 Auth header: Bearer ${token.substring(0, 15)}...`);
       
-      const response = await axios.get(`${API_URL}/auth/user?uid=${uid}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await axios.get(`${API_URL}/auth/user`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
+      console.log("✅ User data fetched successfully:", response.data);
       setUserProfile(response.data);
       return response.data;
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      console.error("❌ Error fetching user data:", error?.message);
+      if (error.response) {
+        console.error("❌ Response status:", error.response.status);
+        console.error("❌ Response data:", error.response.data);
+      }
       return null;
     }
   }
 
   // Fetch onboarding data
   async function fetchOnboardingData() {
+    console.log("🔄 Fetching onboarding data from backend...");
     try {
       const token = await getToken();
-      
-      // Don't proceed if we don't have a token
       if (!token) {
-        console.warn("Cannot fetch onboarding data without authentication");
+        console.log("❌ Cannot fetch onboarding data: Missing token");
         return null;
       }
       
+      console.log(`🔄 GET request to: ${API_URL}/onboarding`);
       const response = await axios.get(`${API_URL}/onboarding`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      setOnboardingData(response.data);
-      return response.data;
+      console.log("✅ Onboarding data fetched successfully:", response.data);
+      setOnboardingData(response.data.data); // Note: response includes {message, data}
+      return response.data.data;
     } catch (error) {
-      console.error("Error fetching onboarding data:", error);
+      // Don't treat 404 as an error for new users
+      if (error.response && error.response.status === 404) {
+        console.log("ℹ️ No onboarding data found - new user");
+        return null;
+      }
+      
+      console.error("❌ Error fetching onboarding data:", error?.message);
+      if (error.response) {
+        console.error("❌ Response status:", error.response.status);
+        console.error("❌ Response data:", error.response.data);
+      }
       return null;
     }
   }
 
-  // Submit onboarding data
-  async function submitOnboardingData(data) {
+  async function submitOnboardingData(data, token = null) {
+    console.log("🔄 Submitting onboarding data to backend...", data);
     try {
-      const token = await getToken();
+      // Use provided token OR get a new one
+      const authToken = token || await getToken();
+      if (!authToken) {
+        console.error("❌ Cannot submit onboarding data: No authentication token");
+        throw new Error("Authentication required");
+      }
       
+      console.log(`🔄 POST request to: ${API_URL}/onboarding`);
       const response = await axios.post(`${API_URL}/onboarding`, data, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${authToken}` }
       });
       
-      setOnboardingData(response.data);
-      return response.data;
+      console.log("✅ Onboarding data submitted successfully:", response.data);
+      setOnboardingData(data);
+      return data;
     } catch (error) {
-      console.error("Error submitting onboarding data:", error);
+      if (error.response) {
+        console.error("❌ Response status:", error.response.status);
+        console.error("❌ Response data:", error.response.data);
+      }
       throw error;
     }
   }
@@ -130,17 +167,16 @@ export function AuthProvider({ children }) {
   async function updateOnboardingData(data) {
     try {
       const token = await getToken();
+      if (!token) throw new Error("Authentication required");
       
       const response = await axios.put(`${API_URL}/onboarding`, data, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
       setOnboardingData(response.data);
       return response.data;
     } catch (error) {
-      console.error("Error updating onboarding data:", error);
+      console.error("Error updating onboarding data:", error?.message);
       throw error;
     }
   }
@@ -152,21 +188,6 @@ export function AuthProvider({ children }) {
     return signOut(auth);
   }
 
-  // Get current user's token
-  async function getToken() {
-    if (!currentUser) {
-      console.warn('No authenticated user when trying to get token');
-      return null;
-    }
-    
-    try {
-      return await currentUser.getIdToken(true);
-    } catch (error) {
-      console.error('Error getting user token:', error);
-      throw error;
-    }
-  }
-
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -174,13 +195,7 @@ export function AuthProvider({ children }) {
       
       if (user) {
         try {
-          // Auto-fetch user data when signed in
-          const token = await user.getIdToken();
-          
-          // First fetch user profile
-          const userProfile = await fetchUserData(token, user.uid);
-          
-          // Only fetch onboarding data if we have a user profile
+          const userProfile = await fetchUserData();
           if (userProfile) {
             await fetchOnboardingData();
           }
@@ -188,7 +203,6 @@ export function AuthProvider({ children }) {
           console.error("Error fetching initial data:", error);
         }
       } else {
-        // Reset states when user is logged out
         setUserProfile(null);
         setOnboardingData(null);
       }

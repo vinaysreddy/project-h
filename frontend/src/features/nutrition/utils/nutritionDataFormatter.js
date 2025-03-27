@@ -196,7 +196,3 @@ export const transformDietPlanData = (apiData) => {
   const capitalizeFirstLetter = (string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
-  
-  export default {
-    transformDietPlanData
-  };

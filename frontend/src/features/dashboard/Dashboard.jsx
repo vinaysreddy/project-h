@@ -2,54 +2,77 @@ import React, { useState, useEffect } from 'react';
 import * as calculations from '@/utils/healthMetricsCalculator';
 import DashboardHeader from './components/DashboardHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, UtensilsCrossed, LineChart, Layout } from 'lucide-react';
+import { Activity, UtensilsCrossed, LineChart, Layout, LogOut } from 'lucide-react';
 import OverviewTab from './tabs/OverviewTab/OverviewTab';
 import NutritionTab from '../nutrition/NutritionCard';
 import WorkoutTab from '../workout/WorkoutTab';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Dashboard = () => {
-  const { currentUser, userProfile, onboardingData, fetchUserData, fetchOnboardingData } = useAuth();
+  const { currentUser, userProfile, onboardingData, fetchUserData, fetchOnboardingData, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
   const [healthMetrics, setHealthMetrics] = useState({});
   const [rawApiResponse, setRawApiResponse] = useState(null);
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  // Handle logout action
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Redirect will happen automatically through the auth state change
+    } catch (error) {
+      console.error("Failed to log out:", error);
+    }
+  };
 
   // Fetch user data and process it
   useEffect(() => {
     const loadUserData = async () => {
+      console.log("🔄 Dashboard: Starting to load user data...");
       try {
         setIsLoading(true);
+        setError(null); // Reset any previous errors
+        console.log("🔄 Dashboard: Loading state set, previous errors cleared");
         
         // Ensure we have both user profile and onboarding data
         let profile = userProfile;
         let onboarding = onboardingData;
         
+        console.log("📋 Current user profile in state:", profile);
+        console.log("📋 Current onboarding data in state:", onboarding);
+        
+        // Only fetch if we don't have the data already
         if (!profile) {
+          console.log("🔄 Dashboard: User profile not found in state, fetching from API...");
           profile = await fetchUserData();
+          console.log("📋 Dashboard: Fetched user profile:", profile);
+          
+          if (!profile) {
+            console.error("❌ Dashboard: Could not retrieve user profile from API");
+            throw new Error('Could not retrieve user profile');
+          }
         }
         
+        // Onboarding data might not exist for new users
         if (!onboarding) {
+          console.log("🔄 Dashboard: Onboarding data not found in state, fetching from API...");
           onboarding = await fetchOnboardingData();
-        }
-
-        if (!profile) {
-          throw new Error('Could not retrieve user profile');
+          console.log("📋 Dashboard: Fetched onboarding data:", onboarding);
+          // Don't throw if onboarding is null - new users might not have it
         }
         
-        // Store raw data for debugging
-        setRawApiResponse({ profile, onboarding });
-        
-        // Format data from both API responses
+        console.log("🔄 Dashboard: Formatting user data from API responses...");
+        // Format data from both API responses with safe fallbacks
         const formattedUserData = {
           // From user profile
-          displayName: profile.displayName || '',
-          email: profile.email || '',
-          photoURL: profile.photoURL || '',
+          displayName: profile?.name || profile?.displayName || '',
+          email: profile?.email || '',
+          photoURL: profile?.photoURL || '',
           
-          // From onboarding data (adjust these based on your actual API response structure)
+          // From onboarding data with safe fallbacks
           dateOfBirth: onboarding?.dob || '',
           gender: onboarding?.gender || '',
           height: onboarding?.height_in_cm || 0,
@@ -64,48 +87,57 @@ const Dashboard = () => {
           otherCondition: onboarding?.other_medical_conditions || ''
         };
         
-        console.log('Formatted user data:', formattedUserData);
+        console.log("📋 Dashboard: Formatted user data:", formattedUserData);
         setUserData(formattedUserData);
         
-        // Calculate health metrics
-        if (formattedUserData.height && formattedUserData.weight) {
+        // Calculate health metrics only if we have necessary data
+        if (formattedUserData.height > 0 && formattedUserData.weight > 0) {
+          console.log("🔄 Dashboard: Required data available, calculating health metrics...");
           calculateHealthMetrics(formattedUserData);
         } else {
-          console.warn('Missing height or weight data for calculations');
+          console.warn("⚠️ Dashboard: Missing height or weight data for calculations");
+          console.log("ℹ️ Dashboard: Height:", formattedUserData.height, "Weight:", formattedUserData.weight);
         }
       } catch (error) {
-        console.error('Error loading dashboard data:', error);
-        setError(error.message);
+        console.error("❌ Dashboard: Error loading dashboard data:", error);
+        console.error("❌ Dashboard: Error details:", error.stack);
+        setError(error.message || 'Failed to load dashboard data');
       } finally {
-        setTimeout(() => setIsLoading(false), 600);
+        console.log("✅ Dashboard: Data loading process complete");
+        setIsLoading(false);
       }
     };
     
     if (currentUser) {
+      console.log("🔄 Dashboard: User is authenticated, loading data...");
+      console.log("👤 Current user:", currentUser.email);
       loadUserData();
     } else {
+      console.log("⚠️ Dashboard: No authenticated user found");
       setIsLoading(false);
       setError("No authenticated user found. Please log in.");
     }
   }, [currentUser, userProfile, onboardingData, fetchUserData, fetchOnboardingData]);
 
-  // Add a debug panel at the bottom when in development mode
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
   // Separate function to calculate health metrics
   const calculateHealthMetrics = (userData) => {
+    console.log("🔄 Dashboard: Starting health metrics calculation...");
     try {
       if (!userData.height || !userData.weight) {
-        throw new Error('Height or weight data missing');
+        console.warn("⚠️ Dashboard: Cannot calculate metrics - missing height or weight");
+        return; // Exit early if data is missing
       }
       
+      console.log("🔄 Dashboard: Calculating BMI...");
       const bmi = calculations.calculateBMI(
         userData.height, 
         userData.weight, 
         userData.heightUnit,
         userData.weightUnit
       );
+      console.log("📊 Dashboard: BMI calculated:", bmi);
       
+      console.log("🔄 Dashboard: Calculating BMR...");
       const bmr = calculations.calculateBMR(
         userData.height,
         userData.weight,
@@ -114,15 +146,27 @@ const Dashboard = () => {
         userData.heightUnit,
         userData.weightUnit
       );
+      console.log("📊 Dashboard: BMR calculated:", bmr);
       
+      console.log("🔄 Dashboard: Calculating TDEE...");
       const tdee = calculations.calculateTDEE(bmr, userData.activityLevel);
+      console.log("📊 Dashboard: TDEE calculated:", tdee);
+      
+      console.log("🔄 Dashboard: Calculating calorie target...");
       const calorieTarget = calculations.calculateCalorieTarget(tdee, userData.primaryGoal);
+      console.log("📊 Dashboard: Calorie target calculated:", calorieTarget);
+      
+      console.log("🔄 Dashboard: Calculating macros...");
       const macros = calculations.calculateMacros(calorieTarget, userData.primaryGoal);
+      console.log("📊 Dashboard: Macros calculated:", macros);
       
       // Get BMI category and color
+      console.log("🔄 Dashboard: Determining BMI category...");
       const { category: bmiCategory, color: bmiColor } = calculations.getBMICategory(bmi);
+      console.log("📊 Dashboard: BMI Category:", bmiCategory, "Color:", bmiColor);
       
       // Update health metrics state
+      console.log("🔄 Dashboard: Updating health metrics state...");
       setHealthMetrics({
         bmi,
         bmiCategory,
@@ -133,9 +177,10 @@ const Dashboard = () => {
         bmr,
         macros     
       });
+      console.log("✅ Dashboard: Health metrics updated successfully");
     } catch (error) {
-      console.error("Error calculating health metrics:", error);
-      // Don't set error state here, just log it to avoid blocking the UI
+      console.error("❌ Dashboard: Error calculating health metrics:", error);
+      console.error("❌ Dashboard: Error details:", error.stack);
     }
   };
 
@@ -165,16 +210,51 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto relative">
+      {/* User profile and logout area */}
+      <div className="absolute top-4 right-4 z-10 flex items-center space-x-4">
+        {/* User profile info */}
+        {userData && (
+          <div className="flex items-center">
+            {userData.photoURL ? (
+              <img 
+                src={userData.photoURL} 
+                alt={userData.displayName || "User"} 
+                className="h-10 w-10 rounded-full border-2 border-white shadow-sm"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] flex items-center justify-center text-white font-medium shadow-sm">
+                {userData.displayName ? userData.displayName.charAt(0).toUpperCase() : "U"}
+              </div>
+            )}
+            
+            <div className="ml-3 hidden md:block">
+              <p className="text-sm font-medium text-gray-700">{userData.displayName || "User"}</p>
+              <p className="text-xs text-gray-500 truncate max-w-[150px]">{userData.email}</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Logout button */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4D55CC]"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </button>
+      </div>
+
       <DashboardHeader 
         userData={userData || {}} 
         healthMetrics={healthMetrics} 
       />
       
-      {/* Improved Tabs for different dashboard sections */}
+      {/* Tabs for different dashboard sections */}
       <Tabs defaultValue="overview" className="w-full mt-8" onValueChange={setActiveTab}>
         <div className="border-b mb-6">
           <TabsList className="flex justify-between max-w-3xl mx-auto">
+            {/* Tab triggers */}
             <TabsTrigger 
               value="overview" 
               className={`flex items-center pb-2 px-4 border-b-2 transition-colors ${
@@ -187,6 +267,7 @@ const Dashboard = () => {
               Overview
             </TabsTrigger>
             
+            {/* Other tab triggers */}
             <TabsTrigger 
               value="nutrition" 
               className={`flex items-center pb-2 px-4 border-b-2 transition-colors ${
@@ -213,7 +294,7 @@ const Dashboard = () => {
           </TabsList>
         </div>
 
-        {/* Improved loading state */}
+        {/* Loading state */}
         {isLoading ? (
           <div className="w-full h-64 flex justify-center items-center">
             <div className="flex flex-col items-center">
@@ -223,7 +304,7 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
-            {/* Overview Tab - A comprehensive dashboard summary */}
+            {/* Tab contents */}
             <TabsContent value="overview" className="animate-in fade-in-50 duration-300">
               <OverviewTab 
                 userData={userData || {}} 
