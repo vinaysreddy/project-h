@@ -1,45 +1,101 @@
-/* Handles API calls to fetch workout plans
-Contains mock workout data for development */
+/* Handles API calls for workout-related functionality */
 
 import axios from 'axios';
 
-/**
- * Fetches a workout plan from the API
- * @param {Object} userData - User data and preferences
- * @returns {Promise<Object>} - The workout plan data
- */
-export const fetchWorkoutPlan = async (userData) => {
-  try {
-    // Prepare the request payload
-    const payload = {
-      days_per_week: userData.workoutDaysPerWeek,
-      preferred_days: userData.preferredWorkoutDays || ["Monday", "Wednesday", "Friday"],
-      session_duration: userData.workoutDuration || "30-45 minutes",
-      workout_environments: userData.workoutEnvironments || ["Home", "Gym"],
-      equipment_access: userData.equipmentAccess || ["Free weights", "Resistance bands/suspension trainers"],
-      health_conditions: userData.healthConditions || [],
-      movements_to_avoid: userData.movementsToAvoid || [],
-      goal_timeline: userData.goalTimeline || "Within 3-6 months (Moderate)",
-      fitness_level: userData.fitnessLevel || "Intermediate",
-      fitness_goal: mapFitnessGoal(userData.primaryGoal)
-    };
+const API_URL = 'http://localhost:3000';
 
-    // Make the API call
-    const response = await axios.post('http://localhost:3000/api/generate-workout', payload);
+/**
+ * Fetches user's existing workout questionnaire data
+ * @param {string} token - Authentication token
+ * @returns {Promise<Object>} - Response data
+ */
+export const getWorkoutQuestionnaire = async (token) => {
+  try {
+    console.log('🔄 Fetching user workout questionnaire');
     
-    // Return the data
+    const response = await axios.get(`${API_URL}/workout/questionnaire`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    console.log('✅ Workout questionnaire fetched successfully:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error fetching workout plan:', error);
-    // For development, return mock data when API fails
-    return getMockWorkoutPlanData();
+    console.error('❌ Error fetching workout questionnaire:', error);
+    handleApiError(error, 'Failed to fetch workout questionnaire');
+  }
+};
+
+/**
+ * Submits workout questionnaire data
+ * @param {Object} data - The workout questionnaire data
+ * @param {string} token - Authentication token
+ * @returns {Promise<Object>} - Response data
+ */
+export const submitWorkoutQuestionnaire = async (data, token) => {
+  try {
+    console.log('🔄 Submitting workout questionnaire:', data);
+    
+    const response = await axios.post(`${API_URL}/workout/questionnaire`, data, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    console.log('✅ Workout questionnaire submitted successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error submitting workout questionnaire:', error);
+    handleApiError(error, 'Failed to submit workout questionnaire');
+  }
+};
+
+/**
+ * Generates a workout plan based on user data and preferences
+ * @param {Object} userData - User data and preferences (can be empty as backend uses stored data)
+ * @param {string} token - Authentication token
+ * @returns {Promise<Object>} - The generated workout plan
+ */
+export const generateWorkoutPlan = async (userData, token) => {
+  try {
+    console.log('🔄 Generating workout plan with data:', userData);
+    
+    const response = await axios.post(`${API_URL}/workout/gen`, userData, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    console.log('✅ Workout plan generated successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error generating workout plan:', error);
+    handleApiError(error, 'Failed to generate workout plan');
+  }
+};
+
+/**
+ * Retrieves the user's workout plan
+ * @param {string} token - Authentication token
+ * @returns {Promise<Object>} - The user's workout plan
+ */
+export const getWorkoutPlan = async (token) => {
+  try {
+    console.log('🔄 Fetching workout plan');
+    
+    const response = await axios.get(`${API_URL}/workout/plan`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    console.log('✅ Workout plan fetched successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching workout plan:', error);
+    handleApiError(error, 'Failed to fetch workout plan');
   }
 };
 
 /**
  * Maps the user's primary goal to the API's expected format
+ * @param {string} goal - User's primary goal
+ * @returns {string} - Mapped fitness goal for API
  */
-const mapFitnessGoal = (goal) => {
+export const mapFitnessGoal = (goal) => {
   switch (goal?.toLowerCase()) {
     case 'lose weight':
     case 'fat loss':
@@ -57,169 +113,28 @@ const mapFitnessGoal = (goal) => {
 };
 
 /**
- * Mock data to use during development or when the API fails
+ * Common error handling function
+ * @param {Error} error - The error object
+ * @param {string} defaultMessage - Default error message
+ * @throws {Error} - Throws an error with an appropriate message
  */
-export const getMockWorkoutPlanData = () => {
-  return {
-    "workout_plan": {
-      "days": [
-        {
-          "day": 1,
-          "focus": "Push",
-          "duration": "40 minutes",
-          "warmup": [
-            "5 minutes light cardio (jumping jacks, high knees, jogging in place)",
-            "10 arm circles each direction",
-            "10 body weight squats"
-          ],
-          "exercises": [
-            {
-              "name": "Push-ups",
-              "sets": 3,
-              "reps": "8-12",
-              "rest": "60 seconds",
-              "notes": "Keep core tight, lower chest to floor with elbows at 45° angle",
-              "progression": {
-                "easier": "Wall push-ups or knee push-ups",
-                "harder": "Decline push-ups or add resistance band"
-              }
-            },
-            {
-              "name": "Dumbbell Shoulder Press",
-              "sets": 3,
-              "reps": "10-12",
-              "rest": "60-90 seconds",
-              "notes": "Start with weights at shoulder level, press overhead without locking elbows",
-              "progression": {
-                "easier": "Seated shoulder press with lighter weights",
-                "harder": "Standing single-arm press or increase weight"
-              }
-            },
-            {
-              "name": "Tricep Dips",
-              "sets": 3,
-              "reps": "10-15",
-              "rest": "60 seconds",
-              "notes": "Use a chair or low table, keep elbows close to body",
-              "progression": {
-                "easier": "Bend knees to reduce load",
-                "harder": "Extend legs straight or add weight"
-              }
-            }
-          ],
-          "cooldown": [
-            "Chest stretch (30 seconds per side)",
-            "Tricep stretch (30 seconds per side)",
-            "Child's pose (30 seconds)"
-          ]
-        },
-        {
-          "day": 3,
-          "focus": "Pull",
-          "duration": "40 minutes",
-          "warmup": [
-            "5 minutes of brisk walking or light jogging",
-            "10 shoulder rolls each direction",
-            "10 cat-cow stretches"
-          ],
-          "exercises": [
-            {
-              "name": "Bent-over Dumbbell Rows",
-              "sets": 3,
-              "reps": "10-12",
-              "rest": "60 seconds",
-              "notes": "Keep back straight, pull weights towards hips",
-              "progression": {
-                "easier": "Use lighter weights",
-                "harder": "Single-arm rows or increase weight"
-              }
-            },
-            {
-              "name": "Resistance Band Face Pulls",
-              "sets": 3,
-              "reps": "12-15",
-              "rest": "60 seconds",
-              "notes": "Pull band towards face, keep elbows high",
-              "progression": {
-                "easier": "Use lighter resistance band",
-                "harder": "Increase resistance or reps"
-              }
-            },
-            {
-              "name": "Bicep Curls",
-              "sets": 3,
-              "reps": "10-15",
-              "rest": "60 seconds",
-              "notes": "Keep elbows close to body, curl weight up",
-              "progression": {
-                "easier": "Use lighter weights",
-                "harder": "Increase weight or do hammer curls"
-              }
-            }
-          ],
-          "cooldown": [
-            "Shoulder stretch (30 seconds per side)",
-            "Upper back stretch (30 seconds)",
-            "Neck stretch (30 seconds per side)"
-          ]
-        },
-        {
-          "day": 5,
-          "focus": "Legs",
-          "duration": "40 minutes",
-          "warmup": [
-            "5 minutes of light cardio (marching in place, butt kickers)",
-            "10 leg swings each leg",
-            "10 hip circles each direction"
-          ],
-          "exercises": [
-            {
-              "name": "Bodyweight Squats",
-              "sets": 3,
-              "reps": "15-20",
-              "rest": "60 seconds",
-              "notes": "Keep chest up, push through heels",
-              "progression": {
-                "easier": "Squat to chair",
-                "harder": "Add dumbbells or resistance band"
-              }
-            },
-            {
-              "name": "Lunges",
-              "sets": 3,
-              "reps": "10-12 each leg",
-              "rest": "60 seconds",
-              "notes": "Step forward, keep front knee over ankle",
-              "progression": {
-                "easier": "Reduce range of motion",
-                "harder": "Add weights or perform walking lunges"
-              }
-            },
-            {
-              "name": "Glute Bridges",
-              "sets": 3,
-              "reps": "15-20",
-              "rest": "60 seconds",
-              "notes": "Squeeze glutes at top, keep feet flat",
-              "progression": {
-                "easier": "Single leg glute bridge",
-                "harder": "Add weight to hips"
-              }
-            }
-          ],
-          "cooldown": [
-            "Quad stretch (30 seconds per side)",
-            "Hamstring stretch (30 seconds per side)",
-            "Calf stretch (30 seconds per side)"
-          ]
-        }
-      ],
-      "progression_notes": "To progress this plan, first increase reps to the upper end of ranges, then add sets, then increase resistance. Aim to increase either reps, sets, or resistance every 1-2 weeks."
-    }
-  };
+const handleApiError = (error, defaultMessage) => {
+  let errorMessage = defaultMessage;
+  
+  if (error.response) {
+    errorMessage = `Server error: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`;
+    console.error('Error details:', error.response.data);
+  } else if (error.request) {
+    errorMessage = 'No response from server. Please check your connection.';
+  }
+  
+  throw new Error(errorMessage);
 };
 
 export default {
-  fetchWorkoutPlan,
-  getMockWorkoutPlanData
+  getWorkoutQuestionnaire,
+  submitWorkoutQuestionnaire,
+  generateWorkoutPlan,
+  getWorkoutPlan,
+  mapFitnessGoal
 };

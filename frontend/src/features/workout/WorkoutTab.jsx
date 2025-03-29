@@ -1,66 +1,424 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+/* Main component that displays the workout information
+Uses the workout plan data to render UI */
+
+import React, { useState, useEffect } from 'react';
 import { 
-  Dumbbell, Clock, Flame, ArrowUpRight, ArrowRight, 
-  ListChecks, RefreshCw, Heart, Timer, HelpCircle,
-  BarChart3
+  Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter 
+} from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { 
+  Dumbbell, Activity, Heart, Timer, ListChecks, ArrowRight, 
+  RefreshCw, HelpCircle, Clock, Flame, BarChart3, AlertCircle,
+  Loader // Add this for loading animation
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  getWorkoutQuestionnaire, 
+  submitWorkoutQuestionnaire, 
+  generateWorkoutPlan, 
+  getWorkoutPlan 
+} from './services/workoutService';
+import { transformWorkoutPlanData } from './utils/workoutDataFormatter';
+import WorkoutQuestionnaire from './components/WorkoutQuestionnaire';
 import WorkoutPlanGenerator from './components/WorkoutPlanGenerator';
 import ExerciseCard from './components/ExerciseCard';
 
 const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
-  const [activeDay, setActiveDay] = useState('day1');
+  const { currentUser, getToken } = useAuth();
+  
+  // State for workout plan and preferences
   const [workoutPlan, setWorkoutPlan] = useState(null);
+  const [workoutPreferences, setWorkoutPreferences] = useState(null);
+  const [activeDay, setActiveDay] = useState('day1');
   const [expandedExercise, setExpandedExercise] = useState(null);
   
-  // Handle workout plan generated from the WorkoutPlanGenerator
-  const handleWorkoutPlanGenerated = (generatedPlan) => {
-    setWorkoutPlan(generatedPlan);
-    // Reset to day1 when a new plan is generated
-    setActiveDay('day1');
+  // UI state
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [submissionError, setSubmissionError] = useState(null);
+  
+  // Helper function to toggle exercise details
+  const toggleExerciseDetails = (index) => {
+    setExpandedExercise(expandedExercise === index ? null : index);
   };
   
-  // Helper function to get main muscle groups for display
+  // Helper functions for UI display
   const getMainMuscleGroups = (dayPlan) => {
-    // Get all unique muscle groups from exercises
-    const allMuscleGroups = dayPlan.exercises.flatMap(ex => ex.muscleGroups);
-    const uniqueGroups = [...new Set(allMuscleGroups)];
+    if (!dayPlan || !dayPlan.exercises || dayPlan.exercises.length === 0) return 'Full Body';
     
-    // Get top 3 most frequent groups
-    const counts = {};
-    allMuscleGroups.forEach(group => {
-      counts[group] = (counts[group] || 0) + 1;
-    });
+    // Get all muscle groups from all exercises
+    const allMuscles = dayPlan.exercises.flatMap(ex => ex.muscleGroups || []);
     
-    const sortedGroups = uniqueGroups.sort((a, b) => counts[b] - counts[a]);
-    const topGroups = sortedGroups.slice(0, 3);
+    // Count occurrences of each muscle group
+    const muscleCounts = allMuscles.reduce((acc, muscle) => {
+      acc[muscle] = (acc[muscle] || 0) + 1;
+      return acc;
+    }, {});
     
-    return topGroups.join(', ');
+    // Get the top 2-3 most frequent muscle groups
+    const sortedMuscles = Object.entries(muscleCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([muscle]) => muscle);
+    
+    return sortedMuscles.join(', ');
   };
   
-  // Helper function to calculate time efficiency
   const getTimeEfficiency = (dayPlan) => {
-    const durationMinutes = parseInt(dayPlan.duration) || 40;
-    const totalSets = dayPlan.metrics.totalSets;
+    if (!dayPlan) return 'N/A';
     
-    // Calculate sets per minute (excluding warmup/cooldown time)
-    const mainWorkoutTime = durationMinutes - 5; // Subtract warmup/cooldown estimate
-    const setsPerMinute = (totalSets / mainWorkoutTime).toFixed(1);
+    // Extract minutes from duration string (e.g., "45 minutes" -> 45)
+    const durationMatch = dayPlan.duration?.match(/(\d+)/);
+    const minutes = durationMatch ? parseInt(durationMatch[1], 10) : 45;
     
-    return `${setsPerMinute} sets/min`;
+    // Calculate sets per minute
+    const setsPerMinute = (dayPlan.metrics?.totalSets || 0) / minutes;
+    
+    if (setsPerMinute >= 0.8) return 'High';
+    if (setsPerMinute >= 0.5) return 'Medium';
+    return 'Low';
   };
   
-  // Calculate main workout duration
   const calculateMainWorkoutDuration = (dayPlan) => {
-    const totalDuration = parseInt(dayPlan.duration) || 40;
-    const warmupTime = Math.ceil(dayPlan.warmup.length * 0.75);
-    const cooldownTime = Math.ceil(dayPlan.cooldown.length * 0.5);
+    if (!dayPlan) return 0;
     
-    return totalDuration - warmupTime - cooldownTime;
+    // Extract minutes from duration string
+    const durationMatch = dayPlan.duration?.match(/(\d+)/);
+    const totalMinutes = durationMatch ? parseInt(durationMatch[1], 10) : 45;
+    
+    // Subtract warmup and cooldown time
+    const warmupTime = Math.ceil(((dayPlan.warmup?.length || 0) * 0.75));
+    const cooldownTime = Math.ceil(((dayPlan.cooldown?.length || 0) * 0.5));
+    
+    return totalMinutes - warmupTime - cooldownTime;
+  };
+  
+  // Active day's workout plan with fallbacks for safety
+  const activeDayPlan = workoutPlan?.days?.find(day => day.id === activeDay) || 
+    (workoutPlan?.days?.[0] || {
+      id: 'day1',
+      dayName: 'Day 1',
+      focus: 'Full Body',
+      duration: '45 minutes',
+      warmup: [],
+      exercises: [],
+      cooldown: [],
+      metrics: { totalSets: 0, estimatedCalories: 0, avgReps: 0 }
+    });
+  
+  // On component mount, check if user has workout preferences
+  useEffect(() => {
+    const checkWorkoutPreferences = async () => {
+      try {
+        setIsLoadingPreferences(true);
+        
+        // Get auth token
+        const token = await getToken();
+        console.log("✅ Authentication token obtained");
+        
+        if (!token) {
+          console.error("❌ No auth token available");
+          throw new Error('Authentication required');
+        }
+        
+        // 1. Check if user has workout questionnaire data
+        console.log("🔍 Checking for existing workout preferences...");
+        const response = await getWorkoutQuestionnaire(token);
+        console.log("📋 Workout questionnaire response:", response);
+        
+        if (response && response.data) {
+          console.log("✅ Found existing workout preferences");
+          setWorkoutPreferences(response.data);
+          
+          try {
+            console.log("🔄 Fetching existing workout plan...");
+            const workoutPlanResponse = await getWorkoutPlan(token);
+            console.log("📋 Workout plan response:", workoutPlanResponse);
+            
+            // Add this check to handle both object and string responses
+            const planData = typeof workoutPlanResponse === 'string' 
+              ? { workout_plan: workoutPlanResponse } 
+              : workoutPlanResponse;
+
+            console.log("🔄 Transforming workout plan data...");
+            const formattedWorkoutPlan = transformWorkoutPlanData(planData);
+            console.log("📋 Formatted workout plan:", formattedWorkoutPlan);
+            setWorkoutPlan(formattedWorkoutPlan);
+          } catch (planError) {
+            console.log("⚠️ No existing workout plan or error fetching it", planError);
+          }
+        } else {
+          console.log("ℹ️ No workout preferences found, showing questionnaire");
+          setShowQuestionnaire(true);
+        }
+      } catch (error) {
+        console.error("❌ Error checking workout preferences:", error);
+        setShowQuestionnaire(true);
+      } finally {
+        setIsLoadingPreferences(false);
+      }
+    };
+    
+    if (currentUser) {
+      checkWorkoutPreferences();
+    }
+  }, [currentUser, getToken]);
+  
+  // Handle workout preferences submission
+  const handleWorkoutPreferencesSubmit = async (preferencesData) => {
+    try {
+      setSubmissionError(null);
+      setIsGeneratingPlan(true);
+      
+      console.log("📝 Submitting workout preferences:", preferencesData);
+      
+      // Get auth token
+      const token = await getToken();
+      
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
+      // Complete data with user metrics
+      const completeData = {
+        ...preferencesData,  // All the questionnaire data
+        // Add user metrics that might be useful
+        height: userData.height,
+        weight: userData.weight,
+        age: userData.age,
+        gender: userData.gender
+      };
+      
+      // 1. Submit workout questionnaire
+      const questionnaireResponse = await submitWorkoutQuestionnaire(completeData, token);
+      console.log('Workout questionnaire submission response:', questionnaireResponse);
+      
+      // 2. Generate workout plan - backend will use stored questionnaire
+      const workoutPlanResponse = await generateWorkoutPlan({}, token);
+      console.log('Workout plan generation response:', workoutPlanResponse);
+      
+      // 3. Get the generated plan
+      const planResponse = await getWorkoutPlan(token);
+      console.log('Workout plan retrieval response:', planResponse);
+      
+      // Format the data using the utility function
+      if (planResponse && planResponse.workout_plan) {
+        const formattedWorkoutPlan = transformWorkoutPlanData(planResponse);
+        setWorkoutPlan(formattedWorkoutPlan);
+        
+        // Update preferences state and hide questionnaire
+        setWorkoutPreferences(completeData);
+        setShowQuestionnaire(false);
+      } else {
+        throw new Error("No workout plan data received from server");
+      }
+    } catch (error) {
+      console.error("❌ Error submitting workout preferences:", error);
+      let errorMessage = 'Failed to generate your workout plan. Please try again.';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setSubmissionError(errorMessage);
+    } finally {
+      setIsGeneratingPlan(false);
+    }
+  };
+  
+  // Handle workout plan generated from the WorkoutPlanGenerator
+  const handleWorkoutPlanGenerated = async (generatedPlan) => {
+    try {
+      setWorkoutPlan(generatedPlan);
+      
+      // Get auth token
+      const token = typeof getToken === 'function' 
+        ? await getToken() 
+        : await currentUser?.getIdToken(true);
+        
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
+      // Save the generated plan to the backend
+      await generateWorkoutPlan({
+        plan: generatedPlan,
+        workoutPreferences: workoutPreferences
+      }, token);
+    } catch (error) {
+      console.error('Error saving generated workout plan:', error);
+      setSubmissionError("Failed to save your workout plan. Please try again.");
+    }
+  };
+  
+  // Regenerate workout plan
+  const handleRegeneratePlan = async () => {
+    try {
+      setIsGeneratingPlan(true);
+      setSubmissionError(null);
+      
+      // Get auth token
+      const token = await getToken();
+      
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
+      // Generate a new workout plan
+      await generateWorkoutPlan({}, token);
+      
+      // Get the newly generated plan
+      const planResponse = await getWorkoutPlan(token);
+      
+      // Format the data
+      if (planResponse && planResponse.workout_plan) {
+        const formattedWorkoutPlan = transformWorkoutPlanData(planResponse);
+        setWorkoutPlan(formattedWorkoutPlan);
+      } else {
+        throw new Error("No workout plan data received from server");
+      }
+    } catch (error) {
+      console.error("❌ Error regenerating workout plan:", error);
+      setSubmissionError("Failed to regenerate your workout plan. Please try again.");
+    } finally {
+      setIsGeneratingPlan(false);
+    }
   };
 
+  // Refresh workout plan
+  const handleRefreshWorkoutPlan = async () => {
+    try {
+      setIsLoadingPreferences(true);
+      const token = await getToken();
+      
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
+      // Fetch the latest workout plan
+      const planResponse = await getWorkoutPlan(token);
+      console.log('Manually refreshed workout plan:', planResponse);
+      
+      if (planResponse && planResponse.workout_plan) {
+        const formattedWorkoutPlan = transformWorkoutPlanData(planResponse);
+        setWorkoutPlan(formattedWorkoutPlan);
+      } else {
+        console.log("No workout plan found during refresh");
+      }
+    } catch (error) {
+      console.error("Error refreshing workout plan:", error);
+    } finally {
+      setIsLoadingPreferences(false);
+    }
+  };
+  
+  // Retry submitting the questionnaire
+  const retrySubmission = () => {
+    setSubmissionError(null);
+    setShowQuestionnaire(true);
+  };
+  
+  // Loading state
+  if (isLoadingPreferences) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader className="h-8 w-8 text-gray-400 animate-spin mr-3" /> {/* Replace LoadingSpinner */}
+        <span className="ml-3 text-gray-600">Loading your workout data...</span>
+      </div>
+    );
+  }
+  
+  // Show error state
+  if (submissionError && !showQuestionnaire) {
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <div className="h-2 bg-red-500 w-full"></div>
+        <CardHeader>
+          <CardTitle className="text-xl font-bold flex items-center text-red-600">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            Unable to Process Workout Plan
+          </CardTitle>
+          <CardDescription>
+            We encountered an issue while creating your fitness program
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-8">
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 w-full mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">
+                  {submissionError}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-500 max-w-md text-center mb-6">
+            This could be due to a connection issue or a problem with our service. Please try again.
+          </p>
+          
+          <Button 
+            onClick={retrySubmission} 
+            className="bg-[#e72208] hover:bg-[#c61d07]"
+          >
+            <Dumbbell className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Show questionnaire if needed
+  if (showQuestionnaire) {
+    return (
+      <div className="space-y-6">
+        <WorkoutQuestionnaire 
+          userData={userData}
+          healthMetrics={healthMetrics}
+          onSubmit={handleWorkoutPreferencesSubmit}
+        />
+        
+        {isGeneratingPlan && (
+          <div className="max-w-2xl mx-auto bg-gray-50 p-6 rounded-lg border">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <Loader className="h-10 w-10 text-gray-500 animate-spin" /> {/* Replace LoadingSpinner */}
+              <p className="text-center font-medium">Creating your personalized workout plan...</p>
+              <p className="text-sm text-gray-500 text-center">
+                This may take a minute. We're designing a workout plan tailored to your goals, 
+                preferences, and fitness level.
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {submissionError && (
+          <Alert variant="destructive" className="max-w-2xl mx-auto">
+            <AlertDescription>{submissionError}</AlertDescription>
+          </Alert>
+        )}
+      </div>
+    );
+  }
+  
+  // If we have preferences but no workout plan yet, show the generator
+  if (workoutPreferences && !workoutPlan) {
+    return <WorkoutPlanGenerator 
+      userData={{
+        ...userData,
+        ...workoutPreferences
+      }} 
+      healthMetrics={healthMetrics} 
+      onWorkoutPlanGenerated={handleWorkoutPlanGenerated} 
+    />;
+  }
+  
   // If no workout plan yet, show the generator
   if (!workoutPlan) {
     return <WorkoutPlanGenerator 
@@ -70,21 +428,35 @@ const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
     />;
   }
   
-  // Find active day
-  const activeDayPlan = workoutPlan.days.find(day => day.id === activeDay) || workoutPlan.days[0];
+  // Check if we have workoutPlan.days to avoid rendering errors
+  if (!workoutPlan.days || workoutPlan.days.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="text-center">
+          <p className="text-gray-500">Invalid workout plan format</p>
+          <Button 
+            className="mt-4 bg-[#e72208] hover:bg-[#c61d07]" 
+            onClick={handleRegeneratePlan}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Generate New Workout Plan
+          </Button>
+        </div>
+      </div>
+    );
+  }
   
-  // Toggle exercise details
-  const toggleExerciseDetails = (exerciseIndex) => {
-    if (expandedExercise === exerciseIndex) {
-      setExpandedExercise(null);
-    } else {
-      setExpandedExercise(exerciseIndex);
-    }
-  };
-  
+  // Render the full Workout Tab content with plan
   return (
     <div className="space-y-8">
-      {/* Workout Summary Card */}
+      {/* Displays error message if there was a problem */}
+      {submissionError && (
+        <Alert variant="destructive">
+          <AlertDescription>{submissionError}</AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Workout Overview Card */}
       <Card className="overflow-hidden">
         <div className="h-2 bg-[#e72208] w-full"></div>
         <CardHeader className="pb-2">
@@ -145,7 +517,7 @@ const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Total Sets</span>
-                  <span>{activeDayPlan.metrics.totalSets} sets</span>
+                  <span>{activeDayPlan.metrics?.totalSets || 0} sets</span>
                 </div>
               </div>
             </div>
@@ -158,7 +530,7 @@ const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
                     <span className="text-xs text-gray-600">Est. Calories</span>
                     <Flame className="h-4 w-4 text-[#e72208]" />
                   </div>
-                  <p className="text-xl font-bold text-[#e72208]">{activeDayPlan.metrics.estimatedCalories}</p>
+                  <p className="text-xl font-bold text-[#e72208]">{activeDayPlan.metrics?.estimatedCalories || 0}</p>
                   <p className="text-[11px] text-gray-500">Based on duration and intensity</p>
                 </div>
                 
@@ -168,7 +540,7 @@ const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
                     <BarChart3 className="h-4 w-4 text-orange-500" />
                   </div>
                   <p className="text-xl font-bold text-orange-500">
-                    {activeDayPlan.metrics.totalSets * activeDayPlan.metrics.avgReps}
+                    {(activeDayPlan.metrics?.totalSets || 0) * (activeDayPlan.metrics?.avgReps || 0)}
                   </p>
                   <p className="text-[11px] text-gray-500">Total reps across all sets</p>
                 </div>
@@ -197,6 +569,25 @@ const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
               </div>
             </div>
           </div>
+          
+          <div className="flex justify-end mt-4">
+            <Button 
+              variant="outline" 
+              className="text-[#e72208] border-[#e72208] hover:bg-red-50"
+              onClick={() => setShowQuestionnaire(true)}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Update Preferences
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleRefreshWorkoutPlan} 
+              className="ml-2"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Plan
+            </Button>
+          </div>
         </CardContent>
       </Card>
       
@@ -215,27 +606,29 @@ const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
         </CardHeader>
         
         <CardContent className="pb-1">
-          {/* Warmup Section */}
-          <div className="mb-6">
-            <h3 className="text-sm font-medium mb-2 flex items-center">
-              <Heart className="h-4 w-4 mr-1 text-pink-500" />
-              Warm-up ({Math.ceil(activeDayPlan.warmup.length * 0.75)} minutes)
-            </h3>
-            <div className="bg-pink-50 p-3 rounded-md">
-              <ul className="space-y-2">
-                {activeDayPlan.warmup.map((item, index) => (
-                  <li key={index} className="flex items-start text-sm">
-                    <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full bg-pink-100 text-pink-600 mr-2 text-xs font-medium">
-                      {index + 1}
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+          {/* Warm-up section */}
+          {activeDayPlan.warmup && activeDayPlan.warmup.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-medium mb-2 flex items-center">
+                <Heart className="h-4 w-4 mr-1 text-pink-500" />
+                Warm-up ({Math.ceil(activeDayPlan.warmup.length * 0.75)} minutes)
+              </h3>
+              <div className="bg-pink-50 p-3 rounded-md">
+                <ul className="space-y-2">
+                  {activeDayPlan.warmup.map((item, index) => (
+                    <li key={index} className="flex items-start text-sm">
+                      <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full bg-pink-100 text-pink-600 mr-2 text-xs font-medium">
+                        {index + 1}
+                      </span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
+          )}
           
-          {/* Main Workout */}
+          {/* Main workout section */}
           <div className="mb-6">
             <h3 className="text-sm font-medium mb-2 flex items-center">
               <Dumbbell className="h-4 w-4 mr-1 text-[#e72208]" />
@@ -243,37 +636,45 @@ const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
             </h3>
             
             <div className="space-y-4">
-              {activeDayPlan.exercises.map((exercise, index) => (
-                <ExerciseCard
-                  key={index}
-                  exercise={exercise}
-                  index={index}
-                  isExpanded={expandedExercise === index}
-                  onToggle={() => toggleExerciseDetails(index)}
-                />
-              ))}
+              {activeDayPlan.exercises && activeDayPlan.exercises.length > 0 ? (
+                activeDayPlan.exercises.map((exercise, index) => (
+                  <ExerciseCard
+                    key={index}
+                    exercise={exercise}
+                    index={index}
+                    isExpanded={expandedExercise === index}
+                    onToggle={() => toggleExerciseDetails(index)}
+                  />
+                ))
+              ) : (
+                <div className="text-center p-8 bg-gray-50 rounded-md">
+                  <p className="text-gray-500">No exercises found for this day</p>
+                </div>
+              )}
             </div>
           </div>
           
-          {/* Cooldown */}
-          <div className="mb-2">
-            <h3 className="text-sm font-medium mb-2 flex items-center">
-              <Timer className="h-4 w-4 mr-1 text-blue-500" />
-              Cool-down ({Math.ceil(activeDayPlan.cooldown.length * 0.5)} minutes)
-            </h3>
-            <div className="bg-blue-50 p-3 rounded-md">
-              <ul className="space-y-2">
-                {activeDayPlan.cooldown.map((item, index) => (
-                  <li key={index} className="flex items-start text-sm">
-                    <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 mr-2 text-xs font-medium">
-                      {index + 1}
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+          {/* Cool-down section */}
+          {activeDayPlan.cooldown && activeDayPlan.cooldown.length > 0 && (
+            <div className="mb-2">
+              <h3 className="text-sm font-medium mb-2 flex items-center">
+                <Timer className="h-4 w-4 mr-1 text-blue-500" />
+                Cool-down ({Math.ceil(activeDayPlan.cooldown.length * 0.5)} minutes)
+              </h3>
+              <div className="bg-blue-50 p-3 rounded-md">
+                <ul className="space-y-2">
+                  {activeDayPlan.cooldown.map((item, index) => (
+                    <li key={index} className="flex items-start text-sm">
+                      <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 mr-2 text-xs font-medium">
+                        {index + 1}
+                      </span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
       
@@ -287,7 +688,7 @@ const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
         </CardHeader>
         <CardContent>
           <div className="bg-gray-50 p-4 rounded-md">
-            <p className="text-sm text-gray-700">{workoutPlan.progressionNotes}</p>
+            <p className="text-sm text-gray-700">{workoutPlan.progressionNotes || "Follow the workout plan consistently. When exercises become easier, increase weight or reps to continue making progress."}</p>
           </div>
           
           <div className="mt-4 space-y-3">
@@ -323,13 +724,24 @@ const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
           </div>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <button 
-            onClick={() => setWorkoutPlan(null)} 
-            className="text-[#e72208] font-medium text-sm hover:underline flex items-center"
+          <Button 
+            variant="ghost"
+            onClick={handleRegeneratePlan} 
+            className="text-[#e72208] font-medium text-sm hover:bg-red-50 hover:text-[#e72208]"
+            disabled={isGeneratingPlan}
           >
-            <RefreshCw className="h-3.5 w-3.5 mr-1" />
-            Regenerate Workout Plan
-          </button>
+            {isGeneratingPlan ? (
+              <>
+                <Loader className="h-4 w-4 mr-2 animate-spin" /> {/* Replace LoadingSpinner */}
+                Generating...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                Regenerate Workout Plan
+              </>
+            )}
+          </Button>
         </CardFooter>
       </Card>
     </div>
