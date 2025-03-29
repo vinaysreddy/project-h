@@ -4,10 +4,45 @@ export const generateWorkoutPlanPrompt = (userData) => {
   const daysPerWeek = parseInt(userData.days_per_week || 3);
   const preferredDays = userData.preferred_days || [];
   const sessionDuration = userData.session_duration || "30-45 minutes";
-  const workoutEnvironments = userData.workout_environments || [];
+  const workoutEnvironments = userData.workout_locations || []; // Fix: Changed from environments to locations
   const equipmentAccess = userData.equipment_access || [];
-  const healthConditions = userData.health_conditions || [];
-  const movementsToAvoid = userData.movements_to_avoid || [];
+  
+  // CRITICAL FIX: Don't just create text variables, actually modify userData 
+  // to avoid any possible variable name issues in the rest of the function
+  
+  // For health conditions - ensure userData.healthConditions exists and is an array
+  if (!userData.healthConditions) {
+    // Create healthConditions from health_conditions
+    if (userData.health_conditions) {
+      userData.healthConditions = Array.isArray(userData.health_conditions) 
+        ? userData.health_conditions 
+        : [userData.health_conditions];
+    } else {
+      userData.healthConditions = [];
+    }
+  }
+  
+  // For movement restrictions - ensure userData.movementRestrictions exists and is an array
+  if (!userData.movementRestrictions) {
+    // Create movementRestrictions from movement_restrictions
+    if (userData.movement_restrictions) {
+      userData.movementRestrictions = Array.isArray(userData.movement_restrictions) 
+        ? userData.movement_restrictions 
+        : [userData.movement_restrictions];
+    } else {
+      userData.movementRestrictions = [];
+    }
+  }
+  
+  // Now extract text from our properly formatted arrays
+  const healthConditionsText = userData.healthConditions.length > 0 
+    ? userData.healthConditions.join(', ') 
+    : "";
+    
+  const movementRestrictionsText = userData.movementRestrictions.length > 0 
+    ? userData.movementRestrictions.join(', ') 
+    : "";
+
   const goalTimeline = userData.goal_timeline || "Within 3-6 months (Moderate)";
   const fitnessLevel = userData.fitness_level || "Intermediate";
   const fitnessGoal = userData.fitness_goal || "General fitness";
@@ -80,6 +115,14 @@ export const generateWorkoutPlanPrompt = (userData) => {
   const equipmentDescription = formatEquipment(equipmentAccess);
   
   // Generate the detailed prompt with simplified output format
+  const healthSection = healthConditionsText 
+    ? `Health considerations: ${healthConditionsText}.` 
+    : "No specific health considerations.";
+    
+  const restrictionsSection = movementRestrictionsText
+    ? `Movement restrictions: ${movementRestrictionsText}.`
+    : "No specific movement restrictions.";
+  
   return `
 You are a certified personal trainer creating a 1-week workout plan that can be repeated. Return a VALID JSON OBJECT ONLY with NO text outside the JSON structure. DO NOT use code blocks, markdown, or backticks.
 
@@ -88,8 +131,8 @@ You are a certified personal trainer creating a 1-week workout plan that can be 
 - Fitness level: ${fitnessLevel}
 - Timeline: ${goalTimeline}
 - Intensity level: ${intensityLevel}
-- Health conditions: ${healthConditions.join(', ') || "None reported"}
-- Movements to avoid: ${movementsToAvoid.join(', ') || "None specified"}
+- ${healthSection}
+- ${restrictionsSection}
 
 ### WORKOUT STRUCTURE:
 - Days per week: ${daysPerWeek}
@@ -200,49 +243,94 @@ Remember: Return ONLY valid JSON with no explanations, backticks, or markdown.
 // Optional: Define a simplified way to turn the workout into a readable format
 export const formatWorkoutPlan = (workoutPlanData) => {
   try {
-    const plan = typeof workoutPlanData === 'string' 
-      ? JSON.parse(workoutPlanData) 
-      : workoutPlanData;
+    console.log("Raw data from OpenAI:", workoutPlanData);
+    
+    // Try to parse the data if it's a string
+    let plan;
+    if (typeof workoutPlanData === 'string') {
+      // Check if we need to find the JSON within markdown code blocks
+      if (workoutPlanData.includes('```json')) {
+        const jsonMatch = workoutPlanData.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          plan = JSON.parse(jsonMatch[1].trim());
+        } else {
+          throw new Error("Could not extract JSON from code block");
+        }
+      } else {
+        // Try to parse the whole string as JSON
+        plan = JSON.parse(workoutPlanData);
+      }
+    } else {
+      // It's already an object
+      plan = workoutPlanData;
+    }
+    
+    console.log("Parsed plan:", plan);
+    
+    // Check if the plan has the expected structure
+    if (!plan || !plan.workout_plan || !Array.isArray(plan.workout_plan.days)) {
+      console.error("Unexpected plan structure:", plan);
       
+      // Attempt to handle a direct array format if that's what was returned
+      if (Array.isArray(plan.days)) {
+        plan = { workout_plan: plan };
+      } else if (plan.workout_plan && !Array.isArray(plan.workout_plan.days) && plan.workout_plan.days) {
+        // Sometimes the API returns days as an object instead of array
+        const daysArray = Object.values(plan.workout_plan.days);
+        plan.workout_plan.days = daysArray;
+      } else {
+        throw new Error("Plan data missing required structure");
+      }
+    }
+    
     let formattedOutput = "";
     
     const plan_data = plan.workout_plan;
-      formattedOutput += `\n## WEEKLY WORKOUT PLAN\n\n`;
+    formattedOutput += `\n## WEEKLY WORKOUT PLAN\n\n`;
       
-      plan_data.days.forEach(day => {
-        formattedOutput += `### DAY ${day.day}: ${day.focus.toUpperCase()} (${day.duration})\n\n`;
-        
-        // Warmup section
-        formattedOutput += "**WARM-UP:**\n";
-        day.warmup.forEach(item => {
-          formattedOutput += `- ${item}\n`;
-        });
-        formattedOutput += "\n";
-        
-        // Main exercises
-        formattedOutput += "**MAIN WORKOUT:**\n";
-        day.exercises.forEach(exercise => {
-          formattedOutput += `- **${exercise.name}**: ${exercise.sets} sets × ${exercise.reps}`;
-          formattedOutput += `\n  Rest: ${exercise.rest}`;
-          formattedOutput += `\n  _${exercise.notes}_`;
-          formattedOutput += `\n  Easier: ${exercise.progression.easier}`;
-          formattedOutput += `\n  Harder: ${exercise.progression.harder}\n\n`;
-        });
-        
-        // Cooldown section
-        formattedOutput += "**COOL-DOWN:**\n";
-        day.cooldown.forEach(item => {
-          formattedOutput += `- ${item}\n`;
-        });
-        formattedOutput += "\n";
+    plan_data.days.forEach(day => {
+      formattedOutput += `### DAY ${day.day}: ${day.focus.toUpperCase()} (${day.duration})\n\n`;
+      
+      // Warmup section
+      formattedOutput += "**WARM-UP:**\n";
+      day.warmup.forEach(item => {
+        formattedOutput += `- ${item}\n`;
+      });
+      formattedOutput += "\n";
+      
+      // Main exercises
+      formattedOutput += "**MAIN WORKOUT:**\n";
+      day.exercises.forEach(exercise => {
+        formattedOutput += `- **${exercise.name}**: ${exercise.sets} sets × ${exercise.reps}`;
+        formattedOutput += `\n  Rest: ${exercise.rest}`;
+        formattedOutput += `\n  _${exercise.notes}_`;
+        formattedOutput += `\n  Easier: ${exercise.progression.easier}`;
+        formattedOutput += `\n  Harder: ${exercise.progression.harder}\n\n`;
       });
       
-      // Add progression notes
-      formattedOutput += "\n## PROGRESSION NOTES\n\n";
-      formattedOutput += plan_data.progression_notes;
+      // Cooldown section
+      formattedOutput += "**COOL-DOWN:**\n";
+      day.cooldown.forEach(item => {
+        formattedOutput += `- ${item}\n`;
+      });
+      formattedOutput += "\n";
+    });
+    
+    // Add progression notes
+    formattedOutput += "\n## PROGRESSION NOTES\n\n";
+    formattedOutput += plan_data.progression_notes || "Progress by increasing reps, then sets, then weights as you get stronger.";
     
     return formattedOutput;
   } catch (error) {
-    return `Error formatting workout plan: ${error.message}`;
+    console.error("Error formatting workout plan:", error);
+    console.error("Raw data that caused error:", workoutPlanData);
+    
+    // Return the raw plan data instead of an error message
+    if (typeof workoutPlanData === 'string') {
+      return workoutPlanData;
+    } else {
+      return JSON.stringify(workoutPlanData, null, 2);
+    }
   }
 };
+

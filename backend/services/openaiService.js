@@ -127,6 +127,50 @@ export const generatePlan = async (
     }
 };
 
+/**
+ * Generates a plan directly using OpenAI based on a provided prompt
+ * @param {string} prompt - The prompt to send to OpenAI
+ * @returns {Object|string} Parsed plan object or raw content if JSON parsing fails
+ */
+export const generatePlanDirect = async (prompt) => {
+    try {
+        // Call OpenAI API
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: "You must return raw JSON ONLY, with no explanations, backticks, or markdown. Never use ```json or ``` in your response."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            temperature: 0.6,
+            max_tokens: 3000
+        });
+
+        let planContent = response.choices[0].message.content.trim();
+        console.log(`Raw OpenAI Response:`, planContent);
+
+        // Remove any markdown code block indicators if present
+        planContent = planContent.replace(/^```json\n|^```\n|```$/g, '');
+
+        try {
+            const plan = JSON.parse(planContent);
+            return plan;
+        } catch (jsonError) {
+            console.error(`JSON parsing error:`, jsonError);
+            return planContent; // Return raw content if JSON parsing fails
+        }
+    } catch (error) {
+        console.error("API error:", error);
+        throw new Error(`Error generating plan: ${error.message}`);
+    }
+};
+
 export default {
-    generatePlan
+    generatePlan,
+    generatePlanDirect
 };

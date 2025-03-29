@@ -1,88 +1,206 @@
 /* Component that handles the workout plan generation process
 Shows loading and error states during plan creation */
 
-import React, { useEffect } from 'react';
-import useWorkoutPlan from '../hooks/useWorkoutPlan';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Dumbbell, RefreshCw, AlertCircle, Activity, Loader } from 'lucide-react'; // Add Loader
+import { generateWorkoutPlan, getWorkoutPlan } from '../services/workoutService';
+import { transformWorkoutPlanData } from '../utils/workoutDataFormatter';
+import { useAuth } from '../../../contexts/AuthContext';
 
 /**
- * Component that fetches and provides workout plan data
- * @param {Object} props - Component props
- * @param {Object} props.userData - User profile data
- * @param {Object} props.healthMetrics - User health metrics data
- * @param {Function} props.onWorkoutPlanGenerated - Callback when workout plan is ready
- * @returns {JSX.Element} - Rendered component
+ * Component that handles workout plan generation with a polished UI
  */
 const WorkoutPlanGenerator = ({ userData, healthMetrics, onWorkoutPlanGenerated }) => {
-  // Combine user data and health metrics for workout plan generation
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [hasMadeAttempt, setHasMadeAttempt] = useState(false);
+  const { getToken } = useAuth();
+
+  // Prepare workout params from user data
   const workoutPlanParams = {
     ...userData,
     ...healthMetrics,
     fitnessLevel: userData.fitnessLevel || "Intermediate",
-    workoutDaysPerWeek: userData.workoutDaysPerWeek || 3,
-    workoutDuration: userData.workoutDuration || "30-45 minutes",
-    preferredWorkoutDays: userData.preferredWorkoutDays || ["Monday", "Wednesday", "Friday"],
-    healthConditions: userData.healthConditions || [],
-    movementsToAvoid: userData.movementsToAvoid || []
+    days_per_week: userData.days_per_week || 3,
+    session_duration: userData.session_duration || "30-45",
+    preferred_days: userData.preferred_days || ["Monday", "Wednesday", "Friday"],
+    health_conditions: userData.health_conditions || '',
+    movement_restrictions: userData.movement_restrictions || ''
   };
 
-  // Fetch the workout plan using our custom hook
-  const { workoutPlan, loading, error, retry } = useWorkoutPlan(workoutPlanParams);
+  // Function to generate workout plan
+  const generatePlan = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      console.log("🔄 Generating workout plan...");
 
-  // When workout plan is loaded, notify parent component
-  useEffect(() => {
-    if (workoutPlan && !loading && !error) {
-      onWorkoutPlanGenerated(workoutPlan);
+      // Get auth token
+      const token = await getToken();
+      
+      if (!token) {
+        throw new Error("Authentication required. Please log in again.");
+      }
+
+      // Generate the workout plan
+      const generationResponse = await generateWorkoutPlan({}, token);
+      console.log("✅ Workout plan generated successfully", generationResponse);
+
+      // IMPORTANT: Add a small delay to ensure Firestore has time to update
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Fetch the generated plan
+      const workoutPlanResponse = await getWorkoutPlan(token);
+      console.log("📋 Retrieved workout plan:", workoutPlanResponse);
+
+      // Transform the data for the UI with better error checking
+      if (workoutPlanResponse && workoutPlanResponse.workout_plan) {
+        // Add more specific logging to debug the transformation
+        console.log("🔍 Raw plan structure:", JSON.stringify(workoutPlanResponse));
+        
+        const formattedWorkoutPlan = transformWorkoutPlanData(workoutPlanResponse);
+        console.log("🎯 Formatted workout plan for UI:", formattedWorkoutPlan);
+        onWorkoutPlanGenerated(formattedWorkoutPlan);
+      } else {
+        console.error("❌ Invalid workout plan structure:", workoutPlanResponse);
+        throw new Error("No workout plan data returned from the server");
+      }
+    } catch (error) {
+      console.error("❌ Error generating workout plan:", error);
+      setError(error.message || "Failed to generate workout plan. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-  }, [workoutPlan, loading, error, onWorkoutPlanGenerated]);
+  };
 
-  // If the workout plan is loading, show a loading state
-  if (loading) {
+  // Auto-generate on first load
+  useEffect(() => {
+    if (!hasMadeAttempt) {
+      setHasMadeAttempt(true);
+      generatePlan();
+    }
+  }, [hasMadeAttempt]);
+
+  // Loading state UI
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-8 bg-white rounded-lg shadow-sm">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 text-[#e72208] animate-spin mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-1">Generating Your Workout Plan</h3>
-          <p className="text-sm text-gray-500">
-            Creating a personalized fitness plan based on your goals and preferences...
+      <Card className="max-w-2xl mx-auto">
+        <div className="h-2 bg-[#e72208] w-full"></div>
+        <CardHeader>
+          <CardTitle className="text-xl font-bold flex items-center">
+            <Dumbbell className="h-5 w-5 mr-2 text-[#e72208]" />
+            Generating Your Workout Plan
+          </CardTitle>
+          <CardDescription>
+            Creating a personalized fitness program based on your goals and preferences
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Loader className="h-10 w-10 text-[#e72208] animate-spin mb-6" />
+          <p className="text-lg text-gray-700 mb-2">Building your personalized workout regimen...</p>
+          <p className="text-sm text-gray-500 max-w-md text-center">
+            This may take a moment as we're designing exercises to match your fitness level, equipment access, and specific goals.
           </p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  // If there was an error, show an error state with retry option
+  // Error state UI
   if (error) {
     return (
-      <div className="flex justify-center items-center p-8 bg-white rounded-lg shadow-sm border border-red-100">
-        <div className="text-center">
-          <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-1">Unable to Generate Workout Plan</h3>
-          <p className="text-sm text-gray-500 mb-4">{error}</p>
-          <button
-            onClick={retry}
-            className="px-4 py-2 bg-[#e72208] text-white rounded-md flex items-center mx-auto"
+      <Card className="max-w-2xl mx-auto">
+        <div className="h-2 bg-red-500 w-full"></div>
+        <CardHeader>
+          <CardTitle className="text-xl font-bold flex items-center text-red-600">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            Unable to Generate Workout Plan
+          </CardTitle>
+          <CardDescription>
+            We encountered an issue while creating your fitness program
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-8">
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 w-full mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">
+                  {error}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-500 max-w-md text-center mb-6">
+            This could be due to a connection issue or a problem with our service. Please try again.
+          </p>
+          
+          <Button 
+            onClick={() => generatePlan()} 
+            className="bg-[#e72208] hover:bg-[#c61d07]"
           >
-            <RefreshCw className="h-4 w-4 mr-2" /> Try Again
-          </button>
-        </div>
-      </div>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
-  // If no workout plan is available but no error/loading, show an empty state
-  if (!workoutPlan) {
-    return (
-      <div className="flex justify-center items-center p-8 bg-white rounded-lg shadow-sm">
-        <div className="text-center">
-          <p className="text-sm text-gray-500">No workout plan available yet</p>
-        </div>
-      </div>
-    );
-  }
-
-  // The component doesn't render anything on success - it just passes data to the parent
-  return null;
+  // Default state (should rarely be seen due to auto-generation)
+  return (
+    <Card className="max-w-2xl mx-auto">
+      <div className="h-2 bg-[#e72208] w-full"></div>
+      <CardHeader>
+        <CardTitle className="text-xl font-bold flex items-center">
+          <Dumbbell className="h-5 w-5 mr-2 text-[#e72208]" />
+          Generate Your Workout Plan
+        </CardTitle>
+        <CardDescription>
+          Create a personalized fitness program based on your goals and abilities
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="py-8 text-center">
+        <p className="mb-6 text-gray-600">
+          Click the button below to generate a personalized workout plan tailored to your:
+        </p>
+        <ul className="text-left max-w-md mx-auto mb-6 space-y-2">
+          <li className="flex items-start">
+            <span className="text-[#e72208] mr-2">✓</span>
+            <span>Fitness level: <strong>{workoutPlanParams.fitnessLevel}</strong></span>
+          </li>
+          <li className="flex items-start">
+            <span className="text-[#e72208] mr-2">✓</span>
+            <span>Schedule: <strong>{workoutPlanParams.days_per_week} days/week</strong></span>
+          </li>
+          <li className="flex items-start">
+            <span className="text-[#e72208] mr-2">✓</span>
+            <span>Equipment access and workout location</span>
+          </li>
+          {workoutPlanParams.health_conditions && (
+            <li className="flex items-start">
+              <span className="text-[#e72208] mr-2">✓</span>
+              <span>Health considerations and movement modifications</span>
+            </li>
+          )}
+        </ul>
+      </CardContent>
+      <CardFooter className="flex justify-center">
+        <Button 
+          onClick={() => generatePlan()} 
+          className="bg-[#e72208] hover:bg-[#c61d07]"
+        >
+          <Activity className="h-4 w-4 mr-2" />
+          Generate Workout Plan
+        </Button>
+      </CardFooter>
+    </Card>
+  );
 };
 
 export default WorkoutPlanGenerator;
