@@ -15,8 +15,6 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
   const [healthMetrics, setHealthMetrics] = useState({});
-  const [rawApiResponse, setRawApiResponse] = useState(null);
-  const isDevelopment = process.env.NODE_ENV === 'development';
 
   // Handle logout action
   const handleLogout = async () => {
@@ -339,31 +337,6 @@ const Dashboard = () => {
           </>
         )}
       </Tabs>
-      
-      {/* Debug panel - only shown in development */}
-      {isDevelopment && (
-        <div className="mt-10 border border-gray-200 rounded-lg p-4 bg-gray-50">
-          <details>
-            <summary className="font-mono text-sm cursor-pointer text-gray-500">Debug Information</summary>
-            <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-mono text-xs text-gray-500 mb-1">Raw API Response:</h4>
-                  <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-96">
-                    {JSON.stringify(rawApiResponse, null, 2)}
-                  </pre>
-                </div>
-                <div>
-                  <h4 className="font-mono text-xs text-gray-500 mb-1">Formatted User Data:</h4>
-                  <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-96">
-                    {JSON.stringify(userData, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            </div>
-          </details>
-        </div>
-      )}
     </div>
   );
 };

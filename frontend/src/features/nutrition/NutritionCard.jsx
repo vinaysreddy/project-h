@@ -357,84 +357,6 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Daily Nutritional Breakdown Card */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-bold flex items-center">
-            <CalendarCheck className="h-5 w-5 mr-2 text-[#3E7B27]" />
-            Daily Nutritional Breakdown
-          </CardTitle>
-          <CardDescription>
-            Complete macronutrient analysis for {dietPlan[activeDay].title}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden rounded-md border">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium">Category</th>
-                  <th className="px-4 py-3 text-right font-medium">Amount</th>
-                  <th className="px-4 py-3 text-right font-medium">% of Total</th>
-                  <th className="px-4 py-3 text-right font-medium">Target</th>
-                  <th className="px-4 py-3 text-right font-medium">% of Target</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                <tr>
-                  <td className="px-4 py-3">Calories</td>
-                  <td className="px-4 py-3 text-right font-medium">{dailyTotals.calories} cal</td>
-                  <td className="px-4 py-3 text-right">100%</td>
-                  <td className="px-4 py-3 text-right">{calorieTarget} cal</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs ${dailyTotals.calories > calorieTarget * 1.05 ? 'bg-red-100 text-red-800' : dailyTotals.calories < calorieTarget * 0.95 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                      {Math.round((dailyTotals.calories / calorieTarget) * 100)}%
-                    </span>
-                  </td>
-                </tr>
-                <tr className="bg-blue-50">
-                  <td className="px-4 py-3">Protein</td>
-                  <td className="px-4 py-3 text-right font-medium">{Math.round(dailyTotals.protein)}g</td>
-                  <td className="px-4 py-3 text-right">{Math.round((dailyTotals.protein * 4 / dailyTotals.calories) * 100)}%</td>
-                  <td className="px-4 py-3 text-right">{Math.round(calorieTarget * macros.protein / 100 / 4)}g</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                      {Math.round((dailyTotals.protein / (calorieTarget * macros.protein / 100 / 4)) * 100)}%
-                    </span>
-                  </td>
-                </tr>
-                <tr className="bg-green-50">
-                  <td className="px-4 py-3">Carbohydrates</td>
-                  <td className="px-4 py-3 text-right font-medium">{Math.round(dailyTotals.carbs)}g</td>
-                  <td className="px-4 py-3 text-right">{Math.round((dailyTotals.carbs * 4 / dailyTotals.calories) * 100)}%</td>
-                  <td className="px-4 py-3 text-right">{Math.round(calorieTarget * macros.carbs / 100 / 4)}g</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                      {Math.round((dailyTotals.carbs / (calorieTarget * macros.carbs / 100 / 4)) * 100)}%
-                    </span>
-                  </td>
-                </tr>
-                <tr className="bg-yellow-50">
-                  <td className="px-4 py-3">Fat</td>
-                  <td className="px-4 py-3 text-right font-medium">{Math.round(dailyTotals.fat || dailyTotals.fats)}g</td>
-                  <td className="px-4 py-3 text-right">{Math.round(((dailyTotals.fat || dailyTotals.fats) * 9 / dailyTotals.calories) * 100)}%</td>
-                  <td className="px-4 py-3 text-right">{Math.round(calorieTarget * macros.fat / 100 / 9)}g</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
-                      {Math.round(((dailyTotals.fat || dailyTotals.fats) / (calorieTarget * macros.fat / 100 / 9)) * 100)}%
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div className="text-xs text-muted-foreground mt-3">
-            <Info className="h-3 w-3 inline mr-1" />
-            Protein & carbs contain 4 calories per gram, while fat contains 9 calories per gram
-          </div>
-        </CardContent>
-      </Card>
       
       {/* Meal Plan Card */}
       <Card>
@@ -444,13 +366,14 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
               <Utensils className="h-5 w-5 mr-2 text-[#3E7B27]" />
               Your Meal Plan
             </CardTitle>
-            <div className="flex space-x-1">
+            
+            {/* Properly configured Tabs component */}
+            <Tabs value={activeDay} onValueChange={setActiveDay}>
               <TabsList className="bg-gray-100 p-1 rounded-md">
                 {Object.keys(dietPlan).map((day) => (
                   <TabsTrigger 
                     key={day}
-                    value={day} 
-                    onClick={() => setActiveDay(day)}
+                    value={day}
                     className={`px-3 py-1 text-sm rounded-md ${
                       activeDay === day ? 'bg-white shadow-sm' : ''
                     }`}
@@ -459,7 +382,7 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
                   </TabsTrigger>
                 ))}
               </TabsList>
-            </div>
+            </Tabs>
           </div>
           <CardDescription className="pt-2">
             {Object.keys(dietPlan).length}-day meal plan designed to meet your calorie and macronutrient targets
