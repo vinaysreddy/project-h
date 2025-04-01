@@ -48,8 +48,6 @@ const FitnessGoalsStep = ({ formData, handleInputChange }) => {
   return (
     <div className="space-y-8 max-w-md mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Your Fitness Goals</h2>
-        <div className="h-1 w-24 mx-auto bg-gradient-to-r from-[#e72208] via-[#3E7B27] to-[#4D55CC] rounded-full"></div>
         <p className="text-gray-600 mt-4">Select the goal that best matches what you want to achieve</p>
       </div>
       

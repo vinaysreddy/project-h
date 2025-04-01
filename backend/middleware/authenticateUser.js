@@ -1,4 +1,4 @@
-import { firebaseAdmin } from '../config/firebase.js';
+import { firebaseAdmin, verifyToken } from '../config/firebase.js';
 
 const authenticateUser = async (req, res, next) => {
     try {
@@ -18,13 +18,21 @@ const authenticateUser = async (req, res, next) => {
         }
 
         try {
-            // Use firebaseAdmin instead of admin
-            const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+            // Verify token using our enhanced method
+            const decodedToken = await verifyToken(token);
 
             // Add the decoded token to the request object
             req.user = decodedToken;
+            
+            // Add auth provider information to the request
+            if (decodedToken.firebase && decodedToken.firebase.sign_in_provider) {
+                req.authProvider = decodedToken.firebase.sign_in_provider;
+            } else {
+                // Default to anonymous if provider not specified
+                req.authProvider = 'anonymous';
+            }
 
-            console.log("Token verified successfully for user:", decodedToken.uid);
+            console.log(`Token verified successfully for user: ${decodedToken.uid} (Provider: ${req.authProvider})`);
             next();
         } catch (verifyError) {
             console.error("Token verification failed:", verifyError);

@@ -1,11 +1,22 @@
 import React from 'react';
+import { ChevronLeft } from 'lucide-react'; // Import ChevronLeft icon
 
-const PersonalInfoStep = ({ formData, handleInputChange }) => {
+const PersonalInfoStep = ({ formData, handleInputChange, onBackToLanding }) => {
   return (
     <div className="space-y-8 max-w-md mx-auto">
+      {/* Back to home button (rendered if onBackToLanding is provided) */}
+      {onBackToLanding && (
+        <button
+          onClick={onBackToLanding}
+          className="flex items-center text-gray-600 hover:text-gray-900 mb-2 text-sm transition-colors"
+          aria-label="Back to landing page"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          <span>Back to home</span>
+        </button>
+      )}
+      
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Personal Information</h2>
-        <div className="h-1 w-24 mx-auto bg-gradient-to-r from-[#e72208] via-[#3E7B27] to-[#4D55CC] rounded-full"></div>
         <p className="text-gray-600 mt-4">Tell us a bit about yourself to help us personalize your experience</p>
       </div>
       

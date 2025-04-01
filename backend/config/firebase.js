@@ -8,7 +8,7 @@ dotenv.config();
 const serviceAccount = {
     type: "service_account",
     project_id: process.env.FIREBASE_PROJECT_ID,
-    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),  // Fixing private key line breaks
+    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
     client_email: process.env.FIREBASE_CLIENT_EMAIL,
     client_id: process.env.FIREBASE_CLIENT_ID,
     auth_uri: process.env.FIREBASE_AUTH_URI,
@@ -25,8 +25,36 @@ admin.initializeApp({
 // Export Firestore database
 const db = admin.firestore();
 
+// For token verification and auth provider detection
+const verifyToken = async (token) => {
+    try {
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        return decodedToken;
+    } catch (error) {
+        console.error("Token verification failed:", error);
+        throw error;
+    }
+};
+
+// Get user auth provider information
+const getUserAuthProviderInfo = async (uid) => {
+    try {
+        const userRecord = await admin.auth().getUser(uid);
+        const providers = userRecord.providerData.map(provider => provider.providerId);
+        return {
+            providerId: providers[0] || 'unknown',
+            providers: providers,
+            email: userRecord.email,
+            emailVerified: userRecord.emailVerified
+        };
+    } catch (error) {
+        console.error("Error getting user auth info:", error);
+        throw error;
+    }
+};
+
 // Export Firebase Admin and Firestore
-export { admin as firebaseAdmin, db };
+export { admin as firebaseAdmin, db, verifyToken, getUserAuthProviderInfo };
 
 // Add default export
-export default { firebaseAdmin: admin, db };
+export default { firebaseAdmin: admin, db, verifyToken, getUserAuthProviderInfo };

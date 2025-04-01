@@ -2,10 +2,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   signInWithPopup, 
   GoogleAuthProvider, 
+  FacebookAuthProvider,
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
 } from 'firebase/auth';
-import { auth } from '../services/firebase/config';
+import { auth, googleProvider, facebookProvider, firebaseApp } from '../config/firebase';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3000';
@@ -43,7 +46,7 @@ export function AuthProvider({ children }) {
   async function signInWithGoogle() {
     console.log("🔄 Starting Google authentication process...");
     try {
-      const provider = new GoogleAuthProvider();
+      const provider = googleProvider;
       console.log("🔄 Opening Google sign-in popup...");
       const result = await signInWithPopup(auth, provider);
       console.log("✅ Google authentication successful:", result.user.email);
@@ -71,6 +74,97 @@ export function AuthProvider({ children }) {
       throw error;
     }
   }
+
+  // Sign up with email and password
+  const signUpWithEmail = async (email, password) => {
+    try {
+      console.log("🔄 Starting email signup process...");
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("✅ Email signup successful:", result.user.email);
+      
+      // Similar to Google auth, register with backend
+      const token = await result.user.getIdToken();
+      const uid = result.user.uid;
+      
+      console.log("🔄 Registering user with backend...");
+      const backendResponse = await axios.post(`${API_URL}/auth/signup`, {
+        email: result.user.email,
+        name: result.user.email.split('@')[0], // Use email prefix as name
+        photoURL: null,
+        uid: uid,
+        provider: 'password' // Indicate this is password-based auth
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      console.log("✅ Backend registration successful", backendResponse.data);
+      return result;
+    } catch (error) {
+      console.error("Error signing up with email:", error);
+      throw error;
+    }
+  };
+
+  // Sign in with email and password
+  const signInWithEmail = async (email, password) => {
+    try {
+      console.log("🔄 Starting email authentication process...");
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log("✅ Email authentication successful:", result.user.email);
+      setCurrentUser(result.user);
+      return result;
+    } catch (error) {
+      console.error("❌ Error signing in with email:", error);
+      
+      // Handle specific Firebase error codes with user-friendly messages
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        throw new Error("No account exists with this email. Please create an account first.");
+      } else if (error.code === 'auth/wrong-password') {
+        throw new Error("Incorrect password. Please try again or reset your password.");
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error("Invalid email format. Please check your email address.");
+      } else if (error.code === 'auth/user-disabled') {
+        throw new Error("This account has been disabled. Please contact support.");
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error("Too many failed login attempts. Please try again later or reset your password.");
+      } else {
+        // For any other errors, return a generic message
+        throw new Error("Failed to sign in. Please check your credentials and try again.");
+      }
+    }
+  };
+
+  // Sign in with Facebook
+  const signInWithFacebook = async () => {
+    try {
+      // Use the pre-created facebookProvider from your firebase.js file
+      console.log("🔄 Starting Facebook authentication process...");
+      const result = await signInWithPopup(auth, facebookProvider);
+      console.log("✅ Facebook authentication successful:", result.user.email);
+      
+      const token = await result.user.getIdToken();
+      const uid = result.user.uid;
+      console.log("🔑 User ID:", uid);
+      console.log("🔄 Registering user with backend...");
+      
+      // Register with backend
+      const backendResponse = await axios.post(`${API_URL}/auth/signup`, {
+        email: result.user.email,
+        name: result.user.displayName,
+        photoURL: result.user.photoURL,
+        uid: uid,
+        provider: 'facebook.com' // Specify the provider for the backend
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      console.log("✅ Backend registration successful", backendResponse.data);
+      return { token, user: result.user };
+    } catch (error) {
+      console.error("❌ Error signing in with Facebook:", error);
+      throw error;
+    }
+  };
 
   // Fetch user data from backend
   async function fetchUserData() {
@@ -181,6 +275,18 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Check if user has onboarding data
+  async function hasCompletedOnboarding() {
+    try {
+      // This will return null if no onboarding data exists
+      const data = await fetchOnboardingData();
+      return data !== null;
+    } catch (error) {
+      console.error("Error checking onboarding status:", error);
+      return false;
+    }
+  }
+
   // Sign out
   function logout() {
     setUserProfile(null);
@@ -218,12 +324,16 @@ export function AuthProvider({ children }) {
     userProfile,
     onboardingData,
     signInWithGoogle,
+    signUpWithEmail,
+    signInWithEmail,
+    signInWithFacebook,
     logout,
     getToken,
     fetchUserData,
     fetchOnboardingData,
     submitOnboardingData,
-    updateOnboardingData
+    updateOnboardingData,
+    hasCompletedOnboarding // Add this to the context
   };
 
   return (

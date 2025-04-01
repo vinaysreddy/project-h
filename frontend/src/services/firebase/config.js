@@ -3,8 +3,9 @@ Sets up the authentication service
 Exports the auth object to be used throughout your app */
 
 //Firebase setup
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import firebase from 'firebase/app';
+import 'firebase/auth';
+import 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -15,8 +16,31 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+// Initialize Firebase if it's not already initialized
+let firebaseApp;
+if (!firebase.apps.length) {
+  firebaseApp = firebase.initializeApp(firebaseConfig);
+} else {
+  firebaseApp = firebase.app();
+}
 
-export { auth };
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Facebook Auth Provider
+const facebookProvider = new firebase.auth.FacebookAuthProvider();
+
+// Google Auth Provider
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+// Export everything we'll need
+export {
+  firebase,  // Export firebase itself
+  firebaseApp,
+  auth,
+  db,
+  googleProvider,
+  facebookProvider
+};
+
+export default { firebase, firebaseApp, auth, db };
