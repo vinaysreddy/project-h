@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import * as calculations from '@/utils/healthMetricsCalculator';
 import DashboardHeader from './components/DashboardHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, UtensilsCrossed, LineChart, Layout, LogOut } from 'lucide-react';
+import { Activity, UtensilsCrossed, LineChart, Layout, LogOut, Bot } from 'lucide-react';
 import OverviewTab from './tabs/OverviewTab/OverviewTab';
 import NutritionTab from '../nutrition/NutritionCard';
 import WorkoutTab from '../workout/WorkoutTab';
 import { useAuth } from '../../contexts/AuthContext';
+import AICoach from '../coach/AICoach';
 
 const Dashboard = () => {
   const { currentUser, userProfile, onboardingData, fetchUserData, fetchOnboardingData, logout } = useAuth();
@@ -289,6 +290,18 @@ const Dashboard = () => {
               <Activity className="h-4 w-4 mr-2" />
               Fitness
             </TabsTrigger>  
+
+            <TabsTrigger 
+              value="coach" 
+              className={`flex items-center pb-2 px-4 border-b-2 transition-colors ${
+                activeTab === 'coach' 
+                  ? 'border-[#4D55CC] text-[#4D55CC] font-medium' 
+                  : 'border-transparent hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Bot className="h-4 w-4 mr-2" />
+              Coach
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -333,6 +346,13 @@ const Dashboard = () => {
                   Soon you'll be able to track your progress over time with detailed charts and insights. Check back after your journey begins!
                 </p>
               </div>
+            </TabsContent>
+
+            <TabsContent value="coach" className="animate-in fade-in-50 duration-300">
+              <AICoach
+                userData={userData || {}}
+                healthMetrics={healthMetrics}
+              />
             </TabsContent>
           </>
         )}

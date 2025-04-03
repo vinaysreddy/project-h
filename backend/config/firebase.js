@@ -25,6 +25,9 @@ admin.initializeApp({
 // Export Firestore database
 const db = admin.firestore();
 
+// Export FieldValue for timestamps and array operations
+const FieldValue = admin.firestore.FieldValue;
+
 // For token verification and auth provider detection
 const verifyToken = async (token) => {
     try {
@@ -54,7 +57,7 @@ const getUserAuthProviderInfo = async (uid) => {
 };
 
 // Export Firebase Admin and Firestore
-export { admin as firebaseAdmin, db, verifyToken, getUserAuthProviderInfo };
+export { admin as firebaseAdmin, db, FieldValue, verifyToken, getUserAuthProviderInfo };
 
 // Add default export
-export default { firebaseAdmin: admin, db, verifyToken, getUserAuthProviderInfo };
+export default { firebaseAdmin: admin, db, FieldValue, verifyToken, getUserAuthProviderInfo };
