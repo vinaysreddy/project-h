@@ -75,22 +75,11 @@ router.get('/history', authenticateUser, async (req, res) => {
   }
 });
 
-// Send chat message endpoint with better error handling
+// Send chat message endpoint
 router.post('/chat', authenticateUser, async (req, res) => {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      console.error("OpenAI API key is missing");
-      return res.status(500).json({ 
-        success: false, 
-        message: 'OpenAI API key configuration error' 
-      });
-    }
-
     const uid = req.user.uid;
     const { message, userData, healthMetrics } = req.body;
-    
-    console.log("Message received:", message);
-    console.log("User data received:", JSON.stringify(userData));
     
     if (!message) {
       return res.status(400).json({
@@ -99,93 +88,115 @@ router.post('/chat', authenticateUser, async (req, res) => {
       });
     }
     
-    // Try a simplified approach to minimize potential errors
-    try {
-      // Generate simple prompt to test OpenAI connection
-      const simplePrompt = `You are a health coach. The user said: "${message}". Respond with brief health advice.`;
-      
-      console.log("Calling OpenAI API with simple prompt");
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo", // Use a more widely available model
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful, supportive AI health coach."
-          },
-          {
-            role: "user",
-            content: simplePrompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 200 // Reducing to see if there's a token limit issue
+    // Fetch user's onboarding data for context
+    const onboardingDoc = await db.collection('onboarding_data').doc(uid).get();
+    const userDataFromDb = onboardingDoc.exists ? onboardingDoc.data() : {};
+    
+    // Fetch workout plan if available
+    const workoutPlanDoc = await db.collection('workout_plans').doc(uid).get();
+    const workoutPlan = workoutPlanDoc.exists ? workoutPlanDoc.data() : {};
+    
+    // Fetch diet plan if available
+    const dietPlanDoc = await db.collection('diet_plans').doc(uid).get();
+    const dietPlan = dietPlanDoc.exists ? dietPlanDoc.data() : {};
+    
+    // Fetch workout questionnaire
+    const workoutQDoc = await db.collection('workout_questionnaire').doc(uid).get();
+    const workoutQData = workoutQDoc.exists ? workoutQDoc.data() : {};
+    
+    // Fetch diet questionnaire
+    const dietQDoc = await db.collection('diet_questionnaire').doc(uid).get();
+    const dietQData = dietQDoc.exists ? dietQDoc.data() : {};
+    
+    // Fetch existing chat history
+    const chatHistoryDoc = await db.collection('coach_chats').doc(uid).get(); // Changed variable name here
+    const chatHistory = chatHistoryDoc.exists ? chatHistoryDoc.data().messages || [] : []; // Changed reference here
+    
+    // Keep only last 10 messages for context window efficiency
+    const recentMessages = chatHistory.slice(-10);
+    
+    // Generate prompt with comprehensive user context
+    const combinedUserData = {
+      ...userDataFromDb,
+      ...userData,
+      ...workoutQData,
+      ...dietQData,
+      healthMetrics: healthMetrics || {},
+      workout_plan: workoutPlan.plan || workoutPlan.workout_plan,
+      meal_plan: dietPlan.plan || dietPlan.meal_plan
+    };
+    
+    console.log("Combined user data profile:", JSON.stringify(combinedUserData, null, 2));
+    
+    const prompt = generateCoachPrompt(combinedUserData, recentMessages, message);
+    
+    // Call OpenAI API with system message explicitly including profile context
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo-0125", // Use the latest model version
+      messages: [
+        {
+          role: "system",
+          content: "You are a personalized health coach with full access to the user's profile data. IMPORTANT: When users ask about their health status, always refer to their specific BMI, weight, activity level, sleep hours and other profile data when responding. Never give generic responses when specific user data is available."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
+    });
+    
+    // Extract response
+    const coachResponse = response.choices[0].message.content.trim();
+    
+    // Generate IDs for messages
+    const userMessageId = `user-${Date.now()}`;
+    const coachMessageId = `coach-${Date.now()}`;
+    
+    // New messages to add
+    const userMessage = {
+      id: userMessageId,
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString() // Use ISO string instead of server timestamp for now
+    };
+    
+    const aiMessage = {
+      id: coachMessageId,
+      role: 'assistant',
+      content: coachResponse,
+      timestamp: new Date().toISOString() // Use ISO string instead of server timestamp for now
+    };
+    
+    console.log("Saving messages to Firestore");
+    
+    // First check if the document exists
+    const chatDocRef = db.collection('coach_chats').doc(uid);
+    const chatDoc = await chatDocRef.get(); // This creates the second declaration of chatDoc
+    
+    if (!chatDoc.exists) {
+      // Create the document with initial messages
+      await chatDocRef.set({
+        messages: [userMessage, aiMessage],
+        updated_at: new Date().toISOString()
       });
-      
-      console.log("OpenAI API response received");
-      
-      // Extract response
-      const coachResponse = response.choices[0].message.content.trim();
-      
-      // Generate IDs for messages
-      const userMessageId = `user-${Date.now()}`;
-      const coachMessageId = `coach-${Date.now()}`;
-      
-      // New messages to add
-      const userMessage = {
-        id: userMessageId,
-        role: 'user',
-        content: message,
-        timestamp: new Date().toISOString() // Use ISO string instead of server timestamp for now
-      };
-      
-      const aiMessage = {
-        id: coachMessageId,
-        role: 'assistant',
-        content: coachResponse,
-        timestamp: new Date().toISOString() // Use ISO string instead of server timestamp for now
-      };
-      
-      console.log("Saving messages to Firestore");
-      
-      // First check if the document exists
-      const chatDocRef = db.collection('coach_chats').doc(uid);
-      const chatDoc = await chatDocRef.get();
-      
-      if (!chatDoc.exists) {
-        // Create the document with initial messages
-        await chatDocRef.set({
-          messages: [userMessage, aiMessage],
-          updated_at: new Date().toISOString()
-        });
-      } else {
-        // Update existing document
-        await chatDocRef.update({
-          messages: admin.firestore.FieldValue.arrayUnion(userMessage, aiMessage),
-          updated_at: new Date().toISOString()
-        });
-      }
-      
-      console.log("Messages saved successfully");
-      
-      // Return success with AI response
-      return res.status(200).json({
-        success: true,
-        id: coachMessageId,
-        message: coachResponse
-      });
-    } catch (innerError) {
-      console.error('Detailed error in chat processing:', innerError);
-      
-      if (innerError.response && innerError.response.data) {
-        console.error('OpenAI error details:', innerError.response.data);
-      }
-      
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Failed to process your message',
-        error: innerError.message
+    } else {
+      // Update existing document
+      await chatDocRef.update({
+        messages: admin.firestore.FieldValue.arrayUnion(userMessage, aiMessage),
+        updated_at: new Date().toISOString()
       });
     }
+    
+    console.log("Messages saved successfully");
+    
+    // Return success with AI response
+    return res.status(200).json({
+      success: true,
+      id: coachMessageId,
+      message: coachResponse
+    });
   } catch (error) {
     console.error('Error processing chat message:', error);
     return res.status(500).json({ 

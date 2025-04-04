@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar } from '@/components/ui/avatar';
 import { Send, Bot, User, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { sendChatMessage, getChatHistory } from './services/coachService';
+// Import health calculation functions from your utility file
+import * as calculations from '@/utils/healthMetricsCalculator';
 
 const AICoach = ({ userData, healthMetrics }) => {
   const [messages, setMessages] = useState([]);
@@ -58,6 +59,9 @@ const AICoach = ({ userData, healthMetrics }) => {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
     
+    // Clear any previous errors
+    setError(null);
+    
     const userMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -65,29 +69,39 @@ const AICoach = ({ userData, healthMetrics }) => {
       timestamp: new Date()
     };
     
-    // Add user message immediately for better UX
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
-    setError(null); // Clear any previous errors
     
     try {
       const token = await getToken();
       
-      // Create a timeout to limit the request time
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timed out')), 30000)
-      );
+      // Create a clean copy of user data with all available metrics
+      const enhancedUserData = {
+        ...userData,
+        // Make sure these fields exist as they are critical for personalization
+        bmi: userData?.bmi || userData?.healthMetrics?.bmi || 
+          calculations.calculateBMI(userData?.height, userData?.weight, 'cm', 'kg'),
+        bmiCategory: userData?.bmiCategory || 
+          (userData?.bmi ? calculations.getBMICategory(userData?.bmi).category : 
+          calculations.getBMICategory(calculations.calculateBMI(userData?.height, userData?.weight, 'cm', 'kg')).category),
+        healthMetrics: {
+          ...healthMetrics,
+          bmi: healthMetrics?.bmi || userData?.bmi || 
+            calculations.calculateBMI(userData?.height, userData?.weight, 'cm', 'kg'),
+          bmiCategory: healthMetrics?.bmiCategory ||
+            (userData?.bmi ? calculations.getBMICategory(userData?.bmi).category : 
+            calculations.getBMICategory(calculations.calculateBMI(userData?.height, userData?.weight, 'cm', 'kg')).category)
+        }
+      };
       
-      // Race between actual request and timeout
-      const response = await Promise.race([
-        sendChatMessage({
-          message: inputMessage,
-          userData: userData || {},
-          healthMetrics: healthMetrics || {}
-        }, token),
-        timeoutPromise
-      ]);
+      console.log("Sending enhanced user data:", enhancedUserData);
+      
+      const response = await sendChatMessage({
+        message: inputMessage,
+        userData: enhancedUserData,
+        healthMetrics: enhancedUserData.healthMetrics || {}
+      }, token);
       
       if (response?.message) {
         setMessages(prev => [...prev, {
