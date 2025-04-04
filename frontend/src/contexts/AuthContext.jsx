@@ -25,15 +25,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // Helper function to get token
-  async function getToken() {
+  async function getToken(forceRefresh = false) {
     console.log("🔑 Getting authentication token...");
     if (!currentUser) {
       console.log("❌ No current user found, cannot get token");
       return null;
     }
     try {
-      const token = await currentUser.getIdToken(true);
-      console.log(token);
+      const token = await currentUser.getIdToken(forceRefresh);
       console.log("✅ Token retrieved successfully", token.substring(0, 15) + "...");
       return token;
     } catch (error) {
@@ -52,6 +51,7 @@ export function AuthProvider({ children }) {
       console.log("✅ Google authentication successful:", result.user.email);
       
       const token = await result.user.getIdToken();
+      console.log({token})
       const uid = result.user.uid;
       console.log("🔑 User ID:", uid);
       console.log("🔄 Registering user with backend...");
@@ -196,11 +196,12 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Fetch onboarding data
-  async function fetchOnboardingData() {
+  // Add this version of fetchOnboardingData that accepts a token parameter:
+
+  async function fetchOnboardingData(directToken = null) {
     console.log("🔄 Fetching onboarding data from backend...");
     try {
-      const token = await getToken();
+      const token = directToken || await getToken();
       if (!token) {
         console.log("❌ Cannot fetch onboarding data: Missing token");
         return null;
@@ -212,7 +213,10 @@ export function AuthProvider({ children }) {
       });
       
       console.log("✅ Onboarding data fetched successfully:", response.data);
-      setOnboardingData(response.data.data); // Note: response includes {message, data}
+      if (!directToken) {
+        // Only update state if this is part of normal flow
+        setOnboardingData(response.data.data);
+      }
       return response.data.data;
     } catch (error) {
       // Don't treat 404 as an error for new users
@@ -226,32 +230,50 @@ export function AuthProvider({ children }) {
         console.error("❌ Response status:", error.response.status);
         console.error("❌ Response data:", error.response.data);
       }
-      return null;
+      throw error;
     }
   }
 
+  // Enhance the submitOnboardingData function with better debugging
+
   async function submitOnboardingData(data, token = null) {
-    console.log("🔄 Submitting onboarding data to backend...", data);
+    console.log("🔄 AuthContext: Submitting onboarding data to backend...", data);
     try {
       // Use provided token OR get a new one
-      const authToken = token || await getToken();
+      const authToken = token || await getToken(true); // Force refresh token
       if (!authToken) {
-        console.error("❌ Cannot submit onboarding data: No authentication token");
+        console.error("❌ AuthContext: Cannot submit onboarding data: No authentication token");
         throw new Error("Authentication required");
       }
       
-      console.log(`🔄 POST request to: ${API_URL}/onboarding`);
+      // Log the full request details
+      console.log(`🔄 AuthContext: POST request to: ${API_URL}/onboarding`);
+      console.log(`🔄 AuthContext: Using token: ${authToken.substring(0, 15)}...`);
+      console.log(`🔄 AuthContext: Sending data:`, JSON.stringify(data, null, 2));
+      
       const response = await axios.post(`${API_URL}/onboarding`, data, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       
-      console.log("✅ Onboarding data submitted successfully:", response.data);
-      setOnboardingData(data);
-      return data;
+      console.log("✅ AuthContext: Onboarding data submitted successfully:", response.data);
+      
+      // Important: Update the state with the response data
+      if (response?.data?.data) {
+        setOnboardingData(response.data.data);
+      } else {
+        setOnboardingData(data); // Fallback to the submitted data
+      }
+      
+      return response.data.data || data;
     } catch (error) {
+      console.error("❌ AuthContext: Error submitting onboarding data:", error);
       if (error.response) {
-        console.error("❌ Response status:", error.response.status);
-        console.error("❌ Response data:", error.response.data);
+        console.error("❌ AuthContext: Response status:", error.response.status);
+        console.error("❌ AuthContext: Response data:", error.response.data);
+      } else if (error.request) {
+        console.error("❌ AuthContext: No response received:", error.request);
+      } else {
+        console.error("❌ AuthContext: Error message:", error.message);
       }
       throw error;
     }
@@ -319,6 +341,51 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
+  // Add this function within AuthProvider
+  async function checkAuthAndDataStatus() {
+    try {
+      console.log("🔄 Checking auth and data status...");
+      // First check if we have an authenticated user
+      if (!currentUser) {
+        console.log("❌ No current user found");
+        return { 
+          authenticated: false,
+          hasProfile: false,
+          hasOnboarding: false 
+        };
+      }
+      
+      // Check if we need to fetch the profile
+      let profile = userProfile;
+      if (!profile) {
+        console.log("🔄 User profile not in state, fetching...");
+        profile = await fetchUserData();
+      }
+      
+      // Check if we need to fetch onboarding data
+      let onboarding = onboardingData;
+      if (!onboarding) {
+        console.log("🔄 Onboarding data not in state, fetching...");
+        onboarding = await fetchOnboardingData();
+      }
+      
+      return {
+        authenticated: true,
+        hasProfile: !!profile,
+        hasOnboarding: !!onboarding
+      };
+    } catch (error) {
+      console.error("❌ Error checking auth and data status:", error);
+      return { 
+        authenticated: !!currentUser,
+        hasProfile: false,
+        hasOnboarding: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Don't forget to add it to the context value
   const value = {
     currentUser,
     userProfile,
@@ -333,7 +400,8 @@ export function AuthProvider({ children }) {
     fetchOnboardingData,
     submitOnboardingData,
     updateOnboardingData,
-    hasCompletedOnboarding // Add this to the context
+    hasCompletedOnboarding,
+    checkAuthAndDataStatus  // Add this to the context
   };
 
   return (

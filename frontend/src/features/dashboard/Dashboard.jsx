@@ -8,6 +8,7 @@ import NutritionTab from '../nutrition/NutritionCard';
 import WorkoutTab from '../workout/WorkoutTab';
 import { useAuth } from '../../contexts/AuthContext';
 import AICoach from '../coach/AICoach';
+import DebugPanel from '../../components/DebugPanel';
 
 const Dashboard = () => {
   const { currentUser, userProfile, onboardingData, fetchUserData, fetchOnboardingData, logout } = useAuth();
@@ -357,6 +358,7 @@ const Dashboard = () => {
           </>
         )}
       </Tabs>
+      <DebugPanel />
     </div>
   );
 };

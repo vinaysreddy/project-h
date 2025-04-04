@@ -1,154 +1,109 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import EmailLoginForm from './EmailLoginForm';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, ChevronLeft } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
+import { BsFacebook } from 'react-icons/bs';
 import EmailSignUpForm from './EmailSignUpForm';
-import { Facebook, AlertCircle, ChevronLeft } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '../../../contexts/AuthContext';
 
-const Login = ({ onLoginSuccess, formData, onBackToLanding }) => {
-  // Ensure formData exists
-  if (!formData || Object.keys(formData).filter(key => formData[key]).length === 0) {
-    console.warn('Login component received empty form data. This component should only be used after completing the questionnaire.');
-  }
-
-  const { signInWithGoogle, signInWithFacebook, submitOnboardingData, getToken } = useAuth();
+const Login = ({ onLoginSuccess, formData, onBackToLanding, onSwitchToLogin }) => {
+  const { signInWithGoogle, signInWithFacebook, submitOnboardingData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('login'); // login or signup
   
-  const prepareOnboardingData = (data) => {
-    // Your existing data preparation code
+  // Helper function to format onboarding data consistently
+  const formatOnboardingData = () => {
+    // Only proceed if we have form data
+    if (!formData || Object.keys(formData).filter(key => !!formData[key]).length === 0) {
+      console.warn("⚠️ No onboarding form data available");
+      return null;
+    }
+    
     return {
-      dob: data.dateOfBirth,
-      gender: data.gender?.toLowerCase() || '',
-      height_in_cm: data.heightUnit === 'cm' 
-        ? parseInt(data.height || '0') 
-        : Math.round(parseInt(data.height || '0') * 2.54),
-      weight_in_kg: data.weightUnit === 'kg'
-        ? parseInt(data.weight || '0')
-        : Math.round(parseInt(data.weight || '0') / 2.205),
-      primary_fitness_goal: data.primaryGoal || '',
-      target_weight: parseInt(data.targetWeight || '0'),
-      daily_activity_level: data.activityLevel || '',
-      exercise_availability: data.weeklyExercise || '',
-      health_conditions: data.healthConditions || [],
-      other_medical_conditions: data.otherCondition || ''
+      dob: formData.dateOfBirth || '',
+      gender: formData.gender?.toLowerCase() || '',
+      height_in_cm: formData.heightUnit === 'cm' 
+        ? parseInt(formData.height || '0') 
+        : Math.round(parseInt(formData.height || '0') * 2.54),
+      weight_in_kg: formData.weightUnit === 'kg'
+        ? parseInt(formData.weight || '0')
+        : Math.round(parseInt(formData.weight || '0') / 2.205),
+      primary_fitness_goal: formData.primaryGoal || '',
+      target_weight: parseInt(formData.targetWeight || '0') || 0,
+      daily_activity_level: formData.activityLevel || '',
+      exercise_availability: formData.weeklyExercise || '',
+      health_conditions: Array.isArray(formData.healthConditions) 
+        ? formData.healthConditions 
+        : [],
+      other_medical_conditions: formData.otherCondition || ''
     };
   };
 
-  const handleThirdPartySignIn = async (signInMethod) => {
+  // Unified handler for third-party auth methods
+  const handleThirdPartySignIn = async (signInMethod, providerName) => {
     try {
       setLoading(true);
       setError('');
       
+      console.log(`🔄 Starting ${providerName} authentication...`);
+      
+      // Call the authentication method (Google or Facebook)
       const result = await signInMethod();
       
-      if (result.user) {
-        // Submit onboarding data if it exists
-        if (formData && Object.keys(formData).length > 0) {
-          try {
-            const token = await result.user.getIdToken();
-            const formattedData = prepareOnboardingData(formData);
-            await submitOnboardingData(formattedData, token);
-          } catch (err) {
-            console.error("Error submitting onboarding data:", err);
-          }
-        }
-        
-        onLoginSuccess();
-      }
-    } catch (err) {
-      setError(`Failed to sign in: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleGoogleSignIn = () => handleThirdPartySignIn(signInWithGoogle);
-  const handleFacebookSignIn = () => handleThirdPartySignIn(signInWithFacebook);
-  
-  const handleEmailLoginSuccess = async (user) => {
-    try {
-      setLoading(true);
-      setError('');
+      console.log(`✅ ${providerName} authentication successful:`, result.user.email);
       
-      console.log("✅ Email authentication successful for user:", user.email);
-      
-      if (formData && Object.keys(formData).length > 0) {
+      // Submit onboarding data if available
+      if (formData) {
         try {
-          console.log("📊 Form data to process:", formData);
+          console.log("📊 Processing onboarding data submission...");
           
-          console.log("🔄 Getting token for onboarding submission...");
-          const token = await user.getIdToken();
-          console.log("✅ Token retrieved successfully");
+          // Format the data
+          const formattedData = formatOnboardingData();
           
-          console.log("🔄 Preparing onboarding data...");
-          const formattedData = prepareOnboardingData(formData);
-          console.log("📊 Formatted onboarding data:", formattedData);
-          
-          console.log("🔄 Submitting onboarding data to backend...");
-          // IMPORTANT: Wait for this to complete
-          const result = await submitOnboardingData(formattedData, token);
-          console.log("✅ Onboarding data submitted successfully:", result);
-          
-          // Small delay to ensure data is saved properly before redirect
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (submitError) {
-          console.error("❌ Error submitting onboarding data:", submitError);
-          
-          if (submitError.response) {
-            console.error("❌ Server response:", submitError.response.data);
-            console.error("❌ Status code:", submitError.response.status);
-          } else {
-            console.error("❌ Error details:", submitError.message);
+          if (formattedData) {
+            console.log("📤 Submitting onboarding data:", formattedData);
+            
+            // Get a fresh token
+            const token = await result.user.getIdToken(true);
+            
+            // Submit the data with the fresh token
+            await submitOnboardingData(formattedData, token);
+            console.log("✅ Onboarding data submitted successfully");
           }
-          
-          // Show error but continue with navigation
-          setError("Your account was created, but we couldn't save your profile data. You can update it later in your dashboard.");
-          
-          // Give user time to read the message
-          await new Promise(resolve => setTimeout(resolve, 2000));
+        } catch (onboardingError) {
+          console.error("❌ Failed to submit onboarding data:", onboardingError);
+          // We'll continue anyway - don't block the login process
         }
-      } else {
-        console.warn("⚠️ No form data available to submit");
       }
       
-      console.log("🔄 Proceeding with login success callback...");
+      // Proceed to dashboard - let AppFlow handle pendingSubmission if needed
       onLoginSuccess();
     } catch (err) {
-      console.error("❌ Error in email login success handler:", err);
-      setError(err.message || "An unexpected error occurred");
+      console.error(`❌ ${providerName} authentication error:`, err);
+      setError(`Authentication failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
+  
+  // Specific handlers for each provider
+  const handleGoogleSignIn = () => handleThirdPartySignIn(signInWithGoogle, "Google");
+  const handleFacebookSignIn = () => handleThirdPartySignIn(signInWithFacebook, "Facebook");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex flex-col items-center justify-center px-4 py-12 relative">
-      {/* Background circles for visual consistency */}
+      {/* Background circles */}
       <div className="absolute top-20 -right-12 w-64 h-64 bg-[#e72208]/10 rounded-full opacity-60"></div>
       <div className="absolute bottom-10 -left-20 w-80 h-80 bg-[#3E7B27]/10 rounded-full opacity-60"></div>
       <div className="absolute -bottom-20 left-1/4 w-56 h-56 bg-[#4D55CC]/10 rounded-full opacity-60"></div>
       
       <div className="w-full max-w-md z-10">
-        {/* Logo and branding at the top */}
-        <div className="text-center mb-6">
-          <div className="font-bold text-2xl text-gray-800 flex items-center justify-center mb-2">
-            <span className="inline-block h-3 w-3 bg-[#3E7B27] rounded-full mr-2"></span>
-            Project H
-          </div>
-          <p className="text-gray-600">Your Personal Health & Fitness Platform</p>
-        </div>
-        
         {/* Back button */}
         {onBackToLanding && (
           <button
             onClick={onBackToLanding}
             className="flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-            aria-label="Back to landing page"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             <span>Back to home</span>
@@ -157,42 +112,26 @@ const Login = ({ onLoginSuccess, formData, onBackToLanding }) => {
         
         <Card className="shadow-xl border-gray-100">
           <CardHeader className="text-center pb-3">
-            <h2 className="text-2xl font-bold text-gray-800">Welcome to Project H</h2>
-            <p className="text-gray-500">Sign in to continue to your dashboard</p>
+            <h2 className="text-2xl font-bold text-gray-800">Create Your Account</h2>
+            <p className="text-gray-500">Complete your registration to access your personalized dashboard</p>
           </CardHeader>
           
           <CardContent className="pb-4">
             {error && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert variant="destructive" className="mb-6">
                 <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
             
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login" className="font-medium text-sm">Login</TabsTrigger>
-                <TabsTrigger value="signup" className="font-medium text-sm">Create Account</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login" className="mt-0 focus:outline-none">
-                <EmailLoginForm 
-                  onLoginSuccess={handleEmailLoginSuccess} 
-                  loading={loading}
-                  setLoading={setLoading}
-                  setError={setError}
-                />
-              </TabsContent>
-              
-              <TabsContent value="signup" className="mt-0 focus:outline-none">
-                <EmailSignUpForm 
-                  onSignUpSuccess={handleEmailLoginSuccess}
-                  loading={loading}
-                  setLoading={setLoading}
-                  setError={setError}
-                />
-              </TabsContent>
-            </Tabs>
+            <EmailSignUpForm 
+              onSignUpSuccess={onLoginSuccess}
+              loading={loading}
+              setLoading={setLoading}
+              setError={setError}
+              formData={formData}
+            />
             
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
@@ -203,41 +142,60 @@ const Login = ({ onLoginSuccess, formData, onBackToLanding }) => {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <Button 
-                onClick={handleGoogleSignIn} 
-                disabled={loading} 
-                variant="outline" 
-                className="w-full border-gray-200 hover:bg-gray-50 transition-all"
+            {/* Social Login Buttons - with more modern styling from your old design */}
+            <div className="space-y-4">
+              {/* Google Button */}
+              <button
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                className="flex items-center justify-center w-full py-3 px-4 rounded-lg shadow-sm transition-all duration-300 relative overflow-hidden bg-gradient-to-r from-[#e72208]/5 via-[#3E7B27]/5 to-[#4D55CC]/5 hover:from-[#e72208]/10 hover:via-[#3E7B27]/10 hover:to-[#4D55CC]/10 border border-gray-200 hover:border-gray-300 hover:shadow-md"
               >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  viewBox="0 0 48 48" 
-                  className="h-5 w-5 mr-2"
-                >
-                  <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
-                  <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
-                  <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
-                  <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
-                </svg>
-                <span className="text-gray-700">Google</span>
-              </Button>
+                <div className="flex items-center justify-center">
+                  {/* Google icon */}
+                  <div className="bg-white p-1 rounded-full shadow-sm mr-3">
+                    <FcGoogle className="w-5 h-5" />
+                  </div>
+                  
+                  {/* Button text */}
+                  <span className="font-medium text-gray-800">
+                    Continue with Google
+                  </span>
+                </div>
+              </button>
               
-              <Button 
-                onClick={handleFacebookSignIn} 
-                disabled={loading} 
-                variant="outline" 
-                className="w-full border-gray-200 hover:bg-gray-50 transition-all"
+              {/* Facebook Button */}
+              <button
+                onClick={handleFacebookSignIn}
+                disabled={loading}
+                className="flex items-center justify-center w-full py-3 px-4 rounded-lg shadow-sm transition-all duration-300 relative overflow-hidden bg-[#1877F2]/5 hover:bg-[#1877F2]/10 border border-gray-200 hover:border-gray-300 hover:shadow-md"
               >
-                <Facebook className="h-5 w-5 mr-2 text-[#4267B2]" />
-                <span className="text-gray-700">Facebook</span>
-              </Button>
+                <div className="flex items-center justify-center">
+                  {/* Facebook icon */}
+                  <div className="bg-white p-1 rounded-full shadow-sm mr-3">
+                    <BsFacebook className="w-5 h-5 text-[#1877F2]" />
+                  </div>
+                  
+                  {/* Button text */}
+                  <span className="font-medium text-gray-800">
+                    Continue with Facebook
+                  </span>
+                </div>
+              </button>
             </div>
           </CardContent>
           
           <CardFooter className="flex flex-col items-center pt-2 pb-6">
-            <div className="text-xs text-gray-500 text-center">
-              By signing in, you agree to our Terms and Privacy Policy
+            <div className="text-xs text-gray-500 text-center mb-3">
+              By signing up, you agree to our Terms and Privacy Policy
+            </div>
+            <div className="text-sm">
+              <span className="text-gray-600">Already have an account? </span>
+              <button 
+                onClick={onSwitchToLogin}
+                className="text-[#3E7B27] font-medium hover:underline"
+              >
+                Sign in here
+              </button>
             </div>
           </CardFooter>
         </Card>

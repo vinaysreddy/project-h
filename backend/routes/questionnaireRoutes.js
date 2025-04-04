@@ -9,21 +9,56 @@ router.post("/", authenticateUser, async (req, res) => {
     try {
         const { uid } = req.user; // Get user ID from Firebase Auth
         const data = req.body;
+        
+        console.log(`📥 Processing onboarding submission for user ${uid}:`, data);
 
-        // Check if questionnaire already exists
+        // Important change: Don't reject if document exists, update it instead
         const docRef = db.collection("user_questionnaire").doc(uid);
         const doc = await docRef.get();
 
+        // Format data for consistency
+        const formattedData = {
+            dob: data.dob || data.dateOfBirth || '',
+            gender: (data.gender || '').toLowerCase(),
+            height_in_cm: parseInt(data.height_in_cm || data.height || '0'),
+            weight_in_kg: parseInt(data.weight_in_kg || data.weight || '0'),
+            primary_fitness_goal: data.primary_fitness_goal || data.primaryGoal || '',
+            target_weight: parseInt(data.target_weight || data.targetWeight || '0'),
+            daily_activity_level: data.daily_activity_level || data.activityLevel || '',
+            exercise_availability: data.exercise_availability || data.weeklyExercise || '',
+            health_conditions: Array.isArray(data.health_conditions) 
+                ? data.health_conditions 
+                : Array.isArray(data.healthConditions) 
+                ? data.healthConditions 
+                : [],
+            other_medical_conditions: data.other_medical_conditions || data.otherCondition || '',
+            updated_at: new Date().toISOString()
+        };
+
+        console.log(`📦 Formatted data for Firestore:`, formattedData);
+        
         if (doc.exists) {
-            return res.status(400).json({ message: "Questionnaire already exists for this user" });
+            console.log(`🔄 Updating existing questionnaire for user ${uid}`);
+            await docRef.update(formattedData);
+            console.log(`✅ Questionnaire updated successfully for user ${uid}`);
+        } else {
+            console.log(`🆕 Creating new questionnaire for user ${uid}`);
+            await docRef.set(formattedData);
+            console.log(`✅ Questionnaire created successfully for user ${uid}`);
         }
 
-        // Store questionnaire in Firestore
-        await docRef.set(data);
-
-        res.status(200).json({ message: "Questionnaire saved successfully" });
+        res.status(200).json({ 
+            success: true,
+            message: "Questionnaire saved successfully",
+            data: formattedData
+        });
     } catch (error) {
-        res.status(500).json({ message: "Error storing questionnaire", error: error.message });
+        console.error("❌ Error storing questionnaire:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error storing questionnaire", 
+            error: error.message 
+        });
     }
 });
 

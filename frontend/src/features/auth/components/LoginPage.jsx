@@ -2,65 +2,79 @@ import React, { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
-import { Facebook, ChevronLeft } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
+import { BsFacebook } from 'react-icons/bs';
+import { ChevronLeft } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 const LoginPage = ({ onLoginSuccess, onRedirectToSignup, onBackToLanding }) => {
-  const { signInWithGoogle, signInWithFacebook, signInWithEmail } = useAuth();
+  const { signInWithGoogle, signInWithFacebook, signInWithEmail, fetchOnboardingData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Handlers remain the same...
-  const handleGoogleSignIn = async () => {
+  // Unified handler for authentication
+  const handleAuthentication = async (authMethod, authParams = []) => {
     try {
       setLoading(true);
       setError('');
-      const result = await signInWithGoogle();
-      
-      if (result.user) {
-        onLoginSuccess();
-      }
-    } catch (err) {
-      setError('Failed to sign in with Google: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleFacebookSignIn = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const result = await signInWithFacebook();
-      
-      if (result.user) {
-        onLoginSuccess();
-      }
-    } catch (err) {
-      setError('Failed to sign in with Facebook: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleEmailSubmit = async (e) => {
-    e.preventDefault();
-    
-    try {
-      setError('');
-      setLoading(true);
-      const result = await signInWithEmail(email, password);
+      // Call the relevant auth method with appropriate params
+      const result = await authMethod(...authParams);
+      
       if (result.user) {
-        onLoginSuccess();
+        console.log("✅ Authentication successful for:", result.user.email);
+        
+        // Get a fresh token for checking onboarding data
+        const token = await result.user.getIdToken(true);
+        
+        try {
+          // Check if this user has completed onboarding
+          console.log("🔍 Checking for existing onboarding data...");
+          const onboardingData = await fetchOnboardingData(token);
+          
+          if (!onboardingData) {
+            console.log("⚠️ No onboarding data found for user");
+            setError("Your account exists but you need to complete your profile first.");
+            
+            // Delay redirect to give user time to read the message
+            setTimeout(() => {
+              onRedirectToSignup();
+            }, 2000);
+            return;
+          }
+          
+          console.log("✅ Onboarding data found, proceeding to dashboard");
+          // User has existing onboarding data - proceed to dashboard
+          onLoginSuccess();
+        } catch (dataError) {
+          // If error is 404, redirect to onboarding
+          if (dataError.response && dataError.response.status === 404) {
+            console.log("⚠️ 404 error - No onboarding data found");
+            setError("Your account exists but you need to complete your profile first.");
+            
+            setTimeout(() => {
+              onRedirectToSignup();
+            }, 2000);
+            return;
+          }
+          
+          // For other errors, log and proceed
+          console.error("❌ Error checking onboarding data:", dataError);
+          onLoginSuccess();
+        }
       }
     } catch (error) {
-      const errorMessage = error.message;
-      setError(errorMessage);
+      console.error("❌ Authentication error:", error);
       
-      if (errorMessage.includes("No account exists")) {
+      // Format friendly error message
+      let errorMessage = error.message;
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        errorMessage = "No account exists with this email. Please create an account first.";
+        
+        // Highlight the create account button
         setTimeout(() => {
           const createAccountLink = document.getElementById('create-account-link');
           if (createAccountLink) {
@@ -68,20 +82,29 @@ const LoginPage = ({ onLoginSuccess, onRedirectToSignup, onBackToLanding }) => {
           }
         }, 100);
       }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  // Specific handlers for each auth method
+  const handleGoogleSignIn = () => handleAuthentication(signInWithGoogle);
+  const handleFacebookSignIn = () => handleAuthentication(signInWithFacebook);
+  const handleEmailSubmit = (e) => {
+    e.preventDefault();
+    handleAuthentication(signInWithEmail, [email, password]);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex flex-col items-center justify-center px-4 py-12 relative">
-      {/* Background circles for visual consistency with landing page */}
+      {/* Background circles */}
       <div className="absolute top-20 -right-12 w-64 h-64 bg-[#e72208]/10 rounded-full opacity-60"></div>
       <div className="absolute bottom-10 -left-20 w-80 h-80 bg-[#3E7B27]/10 rounded-full opacity-60"></div>
       <div className="absolute -bottom-20 left-1/4 w-56 h-56 bg-[#4D55CC]/10 rounded-full opacity-60"></div>
       
       <div className="w-full max-w-md z-10">
-
         {/* Back button */}
         {onBackToLanding && (
           <button
@@ -103,16 +126,17 @@ const LoginPage = ({ onLoginSuccess, onRedirectToSignup, onBackToLanding }) => {
           <CardContent className="pb-4">
             {error && (
               <Alert 
-                variant={error.includes("No account exists") ? "default" : "destructive"} 
-                className={`mb-6 ${error.includes("No account exists") ? "border-[#3E7B27]/20 bg-[#3E7B27]/5" : ""}`}
+                variant={error.includes("complete your profile") || error.includes("No account exists") ? "default" : "destructive"} 
+                className={`mb-6 ${error.includes("complete your profile") || error.includes("No account exists") ? "border-[#3E7B27]/20 bg-[#3E7B27]/5" : ""}`}
               >
-                <AlertCircle className={`h-4 w-4 ${error.includes("No account exists") ? "text-[#3E7B27]" : ""}`} />
+                <AlertCircle className={`h-4 w-4 ${error.includes("complete your profile") || error.includes("No account exists") ? "text-[#3E7B27]" : ""}`} />
                 <AlertTitle className="font-medium">
-                  {error.includes("No account exists") ? "Account Not Found" : "Error"}
+                  {error.includes("complete your profile") ? "Profile Setup Needed" : 
+                   error.includes("No account exists") ? "Account Not Found" : "Error"}
                 </AlertTitle>
                 <AlertDescription className="text-sm">
                   {error}
-                  {error.includes("No account exists") && (
+                  {(error.includes("complete your profile") || error.includes("No account exists")) && (
                     <Button 
                       onClick={onRedirectToSignup} 
                       variant="outline"
@@ -179,36 +203,45 @@ const LoginPage = ({ onLoginSuccess, onRedirectToSignup, onBackToLanding }) => {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <Button 
-                onClick={handleGoogleSignIn} 
-                disabled={loading} 
-                variant="outline" 
-                className="w-full border-gray-200 hover:bg-gray-50 transition-all"
+            {/* Social Login Buttons - with styling from your old design */}
+            <div className="space-y-4">
+              {/* Google Button */}
+              <button
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                className="flex items-center justify-center w-full py-3 px-4 rounded-lg shadow-sm transition-all duration-300 relative overflow-hidden bg-gradient-to-r from-[#e72208]/5 via-[#3E7B27]/5 to-[#4D55CC]/5 hover:from-[#e72208]/10 hover:via-[#3E7B27]/10 hover:to-[#4D55CC]/10 border border-gray-200 hover:border-gray-300 hover:shadow-md"
               >
-                {/* Inline SVG for Google logo to avoid external image dependency */}
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  viewBox="0 0 48 48" 
-                  className="h-5 w-5 mr-2"
-                >
-                  <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
-                  <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
-                  <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
-                  <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
-                </svg>
-                <span className="text-gray-700">Google</span>
-              </Button>
+                <div className="flex items-center justify-center">
+                  {/* Google icon */}
+                  <div className="bg-white p-1 rounded-full shadow-sm mr-3">
+                    <FcGoogle className="w-5 h-5" />
+                  </div>
+                  
+                  {/* Button text */}
+                  <span className="font-medium text-gray-800">
+                    Sign in with Google
+                  </span>
+                </div>
+              </button>
               
-              <Button 
-                onClick={handleFacebookSignIn} 
-                disabled={loading} 
-                variant="outline" 
-                className="w-full border-gray-200 hover:bg-gray-50 transition-all"
+              {/* Facebook Button */}
+              <button
+                onClick={handleFacebookSignIn}
+                disabled={loading}
+                className="flex items-center justify-center w-full py-3 px-4 rounded-lg shadow-sm transition-all duration-300 relative overflow-hidden bg-[#1877F2]/5 hover:bg-[#1877F2]/10 border border-gray-200 hover:border-gray-300 hover:shadow-md"
               >
-                <Facebook className="h-5 w-5 mr-2 text-[#4267B2]" />
-                <span className="text-gray-700">Facebook</span>
-              </Button>
+                <div className="flex items-center justify-center">
+                  {/* Facebook icon */}
+                  <div className="bg-white p-1 rounded-full shadow-sm mr-3">
+                    <BsFacebook className="w-5 h-5 text-[#1877F2]" />
+                  </div>
+                  
+                  {/* Button text */}
+                  <span className="font-medium text-gray-800">
+                    Sign in with Facebook
+                  </span>
+                </div>
+              </button>
             </div>
           </CardContent>
           
