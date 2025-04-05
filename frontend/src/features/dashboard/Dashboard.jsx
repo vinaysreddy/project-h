@@ -3,20 +3,16 @@ import * as calculations from '@/utils/healthMetricsCalculator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Activity, UtensilsCrossed, Bot, User, 
-  PieChart, ArrowRight, LogOut, ChevronRight 
-} from 'lucide-react';
+import { Activity, UtensilsCrossed, Bot, User, ChevronRight, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Import components
-import DashboardHeader from './components/DashboardHeader';
 import HealthSummary from './components/HealthSummary';
 import DailyPlan from './components/DailyPlan';
-import AiCoachWidget from './components/AiCoachWidget';
+import DynamicAISummary from './components/DynamicAISummary';
+import FloatingChatButton from '../coach/components/FloatingChatButton';
 import NutritionCard from '../nutrition/NutritionCard'; 
 import WorkoutCard from '../workout/WorkoutCard'; 
-import AiCoachCard from './components/AiCoachCard';
 
 const Dashboard = () => {
   const { currentUser, userProfile, onboardingData, fetchUserData, fetchOnboardingData, logout } = useAuth();
@@ -25,6 +21,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
   const [healthMetrics, setHealthMetrics] = useState({});
+  const [aiChatOpen, setAiChatOpen] = useState(false);
 
   // Fetch user data and process it
   useEffect(() => {
@@ -161,17 +158,17 @@ const Dashboard = () => {
   if (error && !isLoading) {
     return (
       <div className="p-4 md:p-6 max-w-6xl mx-auto">
-        <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg">
+        <div className="bg-red-50 border-l-4 border-[#e72208] p-6 rounded-lg">
           <div className="flex items-start">
-            <svg className="h-6 w-6 mr-3 text-red-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <svg className="h-6 w-6 mr-3 text-[#e72208] flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="font-bold text-red-700">Error loading dashboard</p>
+              <p className="font-bold text-[#e72208]">Error loading dashboard</p>
               <p className="mt-1 text-red-600">{error}</p>
               <button 
                 onClick={() => window.location.reload()}
-                className="mt-3 px-4 py-2 bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors"
+                className="mt-3 px-4 py-2 bg-red-100 text-[#e72208] rounded hover:bg-red-200 transition-colors"
               >
                 Try Again
               </button>
@@ -183,160 +180,177 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
-      {/* User profile area */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Your Health Dashboard</h1>
-        
-        {userData && (
-          <div className="flex items-center gap-3">
-            {userData.photoURL ? (
-              <img 
-                src={userData.photoURL} 
-                alt={userData.displayName || "User"} 
-                className="h-8 w-8 rounded-full border-2 border-white shadow-sm"
-              />
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] flex items-center justify-center text-white">
-                {userData.displayName ? userData.displayName.charAt(0).toUpperCase() : "U"}
-              </div>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600">
-              <LogOut className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Add the DashboardHeader component */}
-      <DashboardHeader
-        userData={userData || {}}
-        healthMetrics={healthMetrics}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white p-4 md:p-6 relative overflow-hidden">
+      {/* Background circles for visual consistency with other pages */}
+      <div className="absolute top-20 -right-40 w-80 h-80 rounded-full bg-[#e72208]/5 blur-3xl"></div>
+      <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-[#3E7B27]/5 blur-3xl"></div>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] rounded-full bg-[#4D55CC]/5 blur-3xl"></div>
+      
+      {/* Floating AI chat button that follows the user */}
+      <FloatingChatButton 
+        userData={userData || {}} 
+        healthMetrics={healthMetrics} 
+        activeTab={activeTab}
+        isOpen={aiChatOpen}
+        onOpenChange={setAiChatOpen}
       />
-
-      {/* Main dashboard content */}
-      <Tabs defaultValue="home" className="w-full mt-6" onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 mb-6">
-          <TabsTrigger value="home">Home</TabsTrigger>
-          <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
-          <TabsTrigger value="fitness">Fitness</TabsTrigger>
-        </TabsList>
-
-        {isLoading ? (
-          <div className="w-full h-64 flex justify-center items-center">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4D55CC]"></div>
-              <p className="mt-4 text-gray-500">Loading your personalized dashboard...</p>
+      
+      {/* Main content container */}
+      <div className="max-w-6xl mx-auto relative z-10">
+        {/* User profile area */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Your Health Dashboard</h1>
+          
+          {userData && (
+            <div className="flex items-center gap-3">
+              {userData.photoURL ? (
+                <img 
+                  src={userData.photoURL} 
+                  alt={userData.displayName || "User"} 
+                  className="h-8 w-8 rounded-full border-2 border-white shadow-sm"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] flex items-center justify-center text-white">
+                  {userData.displayName ? userData.displayName.charAt(0).toUpperCase() : "U"}
+                </div>
+              )}
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600">
+                <LogOut className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
             </div>
-          </div>
-        ) : (
-          <>
-            {/* Home Tab - Main Dashboard */}
-            <TabsContent value="home" className="space-y-6">
-              {/* Health Metrics Summary Card */}
-              <HealthSummary 
-                userData={userData || {}} 
-                healthMetrics={healthMetrics}
-              />
+          )}
+        </div>
+        
+        {/* Dynamic AI Summary at the top */}
+        <DynamicAISummary 
+          userData={userData || {}}
+          healthMetrics={healthMetrics}
+          activeTab={activeTab}
+          onChatOpen={() => setAiChatOpen(true)}
+        />
+        
+        {/* Tabs navigation followed by health summary */}
+        <Tabs defaultValue="home" className="w-full" onValueChange={setActiveTab}>
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="home">Home</TabsTrigger>
+            <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
+            <TabsTrigger value="fitness">Fitness</TabsTrigger>
+          </TabsList>
+          
+          {/* Thin health summary */}
+          <HealthSummary 
+            userData={userData || {}} 
+            healthMetrics={healthMetrics}
+            className="mb-6"
+          />
+
+          {isLoading ? (
+            <div className="w-full h-64 flex justify-center items-center mt-4">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4D55CC]"></div>
+                <p className="mt-4 text-gray-500">Loading your personalized dashboard...</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Home Tab */}
+              <TabsContent value="home" className="space-y-6">
+                
+                {/* Main content */}
+                <DailyPlan 
+                  userData={userData || {}}
+                  healthMetrics={healthMetrics}
+                  onNutritionClick={() => setActiveTab('nutrition')}
+                  onFitnessClick={() => setActiveTab('fitness')}
+                />
+                
+                {/* Quick Actions Card */}
+                <Card className="overflow-hidden border-gray-100 rounded-2xl shadow-md">
+                  <div className="h-1 bg-gradient-to-r from-[#4D55CC] via-[#3E7B27] to-[#e72208]"></div>
+                  <CardContent className="p-6">
+                    <h3 className="text-md font-medium mb-4 text-gray-800">Quick Actions</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Button 
+                        variant="outline" 
+                        className="justify-between border-gray-200 hover:border-[#3E7B27] hover:bg-[#3E7B27]/5 transition-all" 
+                        onClick={() => setActiveTab('nutrition')}
+                      >
+                        <div className="flex items-center">
+                          <div className="p-1.5 rounded-full bg-[#3E7B27]/10 mr-2">
+                            <UtensilsCrossed className="h-4 w-4 text-[#3E7B27]" />
+                          </div>
+                          <span>My Meal Plan</span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="justify-between border-gray-200 hover:border-[#e72208] hover:bg-[#e72208]/5 transition-all" 
+                        onClick={() => setActiveTab('fitness')}
+                      >
+                        <div className="flex items-center">
+                          <div className="p-1.5 rounded-full bg-[#e72208]/10 mr-2">
+                            <Activity className="h-4 w-4 text-[#e72208]" />
+                          </div>
+                          <span>My Workouts</span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="justify-between border-gray-200 hover:border-[#4D55CC] hover:bg-[#4D55CC]/5 transition-all"
+                        onClick={() => setAiChatOpen(true)}
+                      >
+                        <div className="flex items-center">
+                          <div className="p-1.5 rounded-full bg-[#4D55CC]/10 mr-2">
+                            <Bot className="h-4 w-4 text-[#4D55CC]" />
+                          </div>
+                          <span>Ask RIA</span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="justify-between border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all"
+                      >
+                        <div className="flex items-center">
+                          <div className="p-1.5 rounded-full bg-gray-100 mr-2">
+                            <User className="h-4 w-4 text-gray-600" />
+                          </div>
+                          <span>Update Profile</span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
               
-              {/* AI Coach Widget - Condensed version */}
-              <AiCoachWidget 
-                userData={userData || {}} 
-                healthMetrics={healthMetrics}
-                onExpandClick={() => setActiveTab('coach')}
-              />
+              {/* Nutrition Tab */}
+              <TabsContent value="nutrition" className="space-y-6">
+                
+                <NutritionCard 
+                  userData={userData || {}}
+                  healthMetrics={healthMetrics}
+                />
+              </TabsContent>
               
-              {/* Today's Plan Card (combines nutrition & fitness) */}
-              <DailyPlan 
-                userData={userData || {}}
-                healthMetrics={healthMetrics}
-                onNutritionClick={() => setActiveTab('nutrition')}
-                onFitnessClick={() => setActiveTab('fitness')}
-              />
-              
-              {/* Quick Actions Card */}
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="text-md font-medium mb-3">Quick Actions</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button 
-                      variant="outline" 
-                      className="justify-between" 
-                      onClick={() => setActiveTab('nutrition')}
-                    >
-                      <div className="flex items-center">
-                        <UtensilsCrossed className="h-4 w-4 mr-2" />
-                        <span>My Meal Plan</span>
-                      </div>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      className="justify-between" 
-                      onClick={() => setActiveTab('fitness')}
-                    >
-                      <div className="flex items-center">
-                        <Activity className="h-4 w-4 mr-2" />
-                        <span>My Workouts</span>
-                      </div>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      className="justify-between"
-                      onClick={() => setActiveTab('coach')}
-                    >
-                      <div className="flex items-center">
-                        <Bot className="h-4 w-4 mr-2" />
-                        <span>Ask Coach</span>
-                      </div>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      className="justify-between"
-                    >
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 mr-2" />
-                        <span>Update Profile</span>
-                      </div>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            {/* Nutrition Tab */}
-            <TabsContent value="nutrition">
-              <NutritionCard 
-                userData={userData || {}}
-                healthMetrics={healthMetrics}
-              />
-            </TabsContent>
-            
-            {/* Fitness Tab */}
-            <TabsContent value="fitness">
-              <WorkoutCard
-                userData={userData || {}}
-                healthMetrics={healthMetrics}
-              />
-            </TabsContent>
-            
-            {/* Coach Tab */}
-            <TabsContent value="coach">
-              <AiCoachCard
-                userData={userData || {}}
-                healthMetrics={healthMetrics}
-              />
-            </TabsContent>
-          </>
-        )}
-      </Tabs>
+              {/* Fitness Tab */}
+              <TabsContent value="fitness" className="space-y-6">
+                
+                <WorkoutCard
+                  userData={userData || {}}
+                  healthMetrics={healthMetrics}
+                />
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
+      </div>
     </div>
   );
 };

@@ -1,71 +1,85 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { PieChart, TrendingUp, User, Scale, CalendarClock } from 'lucide-react';
+import { Scale, Flame, Heart, Activity, PlusCircle, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-const HealthSummary = ({ userData, healthMetrics }) => {
+const HealthSummary = ({ userData, healthMetrics, className = "" }) => {
   // Add safe type checking for bmi - ensure it's a number
   const bmi = typeof healthMetrics.bmi === 'number' ? healthMetrics.bmi : 0;
-  const { bmiCategory, bmiColor, calorieTarget, tdee } = healthMetrics;
-  const firstName = userData?.displayName?.split(' ')[0] || 'there';
-  
-  // Calculate progress towards goal (simplified example)
-  const goalProgress = 65; // In a real app, calculate based on starting point and current metrics
-  
-  // Debug log to diagnose the issue
-  console.log('HealthMetrics in HealthSummary:', healthMetrics);
-  console.log('BMI type:', typeof bmi, 'Value:', bmi);
+  const { bmiCategory, bmiColor, calorieTarget, tdee, bmr } = healthMetrics;
   
   return (
-    <Card>
+    <Card className={`border-gray-100 shadow-sm overflow-hidden ${className}`}>
+      {/* Decorative top border using theme colors */}
+      <div className="h-0.5 bg-gradient-to-r from-[#4D55CC] via-[#3E7B27] to-[#e72208]"></div>
+      
       <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-lg font-semibold">Hi, {firstName}</h3>
-            <p className="text-sm text-gray-500">Here's your health snapshot</p>
-          </div>
-          <div className="bg-blue-50 p-2 rounded-full">
-            <PieChart className="h-5 w-5 text-blue-600" />
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center mb-1">
-              <Scale className="h-3 w-3 mr-1 text-gray-500" />
-              <p className="text-xs text-gray-500">BMI</p>
+        <div className="flex items-center gap-2 md:gap-6 flex-wrap justify-between">
+          {/* BMI */}
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-full bg-[#4D55CC]/10">
+              <Scale className="h-3.5 w-3.5 text-[#4D55CC]" />
             </div>
-            {/* Fixed toFixed usage */}
-            <p className="text-lg font-medium">{typeof bmi === 'number' ? bmi.toFixed(1) : '--'}</p>
-            <p className={`text-xs ${bmiColor || 'text-gray-500'}`}>{bmiCategory || 'Not calculated'}</p>
+            <div>
+              <p className="text-xs text-gray-500 leading-none">BMI</p>
+              <div className="flex items-baseline gap-1">
+                <p className="font-medium">{typeof bmi === 'number' ? bmi.toFixed(1) : '--'}</p>
+                <span className={`text-[10px] ${bmiColor || 'text-gray-500'}`}>{bmiCategory || 'Unknown'}</span>
+              </div>
+            </div>
           </div>
           
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center mb-1">
-              <CalendarClock className="h-3 w-3 mr-1 text-gray-500" />
-              <p className="text-xs text-gray-500">Daily Target</p>
+          {/* Daily Target */}
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-full bg-[#3E7B27]/10">
+              <Flame className="h-3.5 w-3.5 text-[#3E7B27]" />
             </div>
-            <p className="text-lg font-medium">{calorieTarget || '--'}</p>
-            <p className="text-xs text-gray-500">calories</p>
+            <div>
+              <p className="text-xs text-gray-500 leading-none">Daily Target</p>
+              <div className="flex items-baseline gap-1">
+                <p className="font-medium">{calorieTarget || '--'}</p>
+                <span className="text-[10px] text-gray-500">cal</span>
+              </div>
+            </div>
           </div>
           
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center mb-1">
-              <User className="h-3 w-3 mr-1 text-gray-500" />
-              <p className="text-xs text-gray-500">Weight</p>
+          {/* Weight */}
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-full bg-[#e72208]/10">
+              <Activity className="h-3.5 w-3.5 text-[#e72208]" />
             </div>
-            <p className="text-lg font-medium">{userData?.weight || '--'}</p>
-            <p className="text-xs text-gray-500">{userData?.weightUnit || 'kg'}</p>
+            <div>
+              <p className="text-xs text-gray-500 leading-none">Weight</p>
+              <div className="flex items-baseline gap-1">
+                <p className="font-medium">{userData?.weight || '--'}</p>
+                <span className="text-[10px] text-gray-500">{userData?.weightUnit || 'kg'}</span>
+              </div>
+            </div>
           </div>
           
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center mb-1">
-              <TrendingUp className="h-3 w-3 mr-1 text-gray-500" />
-              <p className="text-xs text-gray-500">Goal Progress</p>
+          {/* BMR */}
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-full bg-blue-50">
+              <Heart className="h-3.5 w-3.5 text-blue-500" />
             </div>
-            <Progress value={goalProgress} className="h-2 mt-2" />
-            <p className="text-xs text-right mt-1">{goalProgress}%</p>
+            <div>
+              <p className="text-xs text-gray-500 leading-none">BMR</p>
+              <div className="flex items-baseline gap-1">
+                <p className="font-medium">{bmr?.toFixed(0) || '--'}</p>
+                <span className="text-[10px] text-gray-500">cal</span>
+              </div>
+            </div>
           </div>
+          
+          {/* View Details Button */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs text-[#4D55CC] hover:bg-[#4D55CC]/5 py-1"
+          >
+            <span>View Details</span>
+            <ArrowRight className="ml-1 h-3 w-3" />
+          </Button>
         </div>
       </CardContent>
     </Card>

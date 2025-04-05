@@ -132,7 +132,7 @@ router.post('/chat', authenticateUser, async (req, res) => {
     
     // Call OpenAI API with system message explicitly including profile context
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-0125", // Use the latest model version
+      model: "gpt-4o-mini", // Use the latest model version
       messages: [
         {
           role: "system",
@@ -203,6 +203,90 @@ router.post('/chat', authenticateUser, async (req, res) => {
       success: false, 
       message: 'Failed to process your message', 
       error: error.message 
+    });
+  }
+});
+
+// Get AI Summary endpoint
+router.post('/summary', authenticateUser, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const { context } = req.body;
+    
+    // Fetch user's onboarding data for context
+    const onboardingDoc = await db.collection('onboarding_data').doc(uid).get();
+    const userDataFromDb = onboardingDoc.exists ? onboardingDoc.data() : {};
+    
+    // Fetch workout plan if available
+    const workoutPlanDoc = await db.collection('workout_plans').doc(uid).get();
+    const workoutPlan = workoutPlanDoc.exists ? workoutPlanDoc.data() : {};
+    
+    // Fetch diet plan if available
+    const dietPlanDoc = await db.collection('diet_plans').doc(uid).get();
+    const dietPlan = dietPlanDoc.exists ? dietPlanDoc.data() : {};
+    
+    // Get user's most recent data from the request
+    const { userData, healthMetrics } = req.body;
+    
+    // Combine all the data
+    const combinedUserData = {
+      ...userDataFromDb,
+      ...userData,
+      healthMetrics: healthMetrics || {},
+      workout_plan: workoutPlan.plan || workoutPlan.workout_plan,
+      meal_plan: dietPlan.plan || dietPlan.meal_plan
+    };
+    
+    // Create a prompt for the summary based on context
+    let prompt = `Generate a brief, personalized health summary for a user with the following profile:\n\n`;
+    prompt += `Name: ${combinedUserData.displayName || 'User'}\n`;
+    prompt += `BMI: ${healthMetrics?.bmi || 'unknown'} (${healthMetrics?.bmiCategory || 'unknown'})\n`;
+    prompt += `Primary Goal: ${combinedUserData.primaryGoal || 'general health'}\n`;
+    prompt += `Height: ${combinedUserData.height || 'unknown'}\n`;
+    prompt += `Weight: ${combinedUserData.weight || 'unknown'}\n`;
+    prompt += `Calorie Target: ${healthMetrics?.calorieTarget || 'unknown'}\n\n`;
+    
+    // Add context-specific instructions
+    if (context === 'nutrition') {
+      prompt += `Focus on their nutrition needs and dietary recommendations for their ${healthMetrics?.bmiCategory || 'current'} BMI and ${combinedUserData.primaryGoal || 'health'} goals.`;
+    } else if (context === 'fitness') {
+      prompt += `Focus on their fitness needs and exercise recommendations for their ${healthMetrics?.bmiCategory || 'current'} BMI and ${combinedUserData.primaryGoal || 'health'} goals.`;
+    } else {
+      prompt += `Provide a general health overview and recommendations based on their current metrics and goals.`;
+    }
+    
+    prompt += `\n\nKeep the summary brief (2-3 sentences), personalized, and actionable. Start with "Hi [name]!"`;
+    
+    // Call OpenAI
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini", // Or your preferred model
+      messages: [
+        {
+          role: "system",
+          content: "You are a helpful AI health coach that provides personalized summaries based on user health data."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 150
+    });
+    
+    const summary = response.choices[0].message.content.trim();
+    
+    return res.status(200).json({
+      success: true,
+      summary
+    });
+    
+  } catch (error) {
+    console.error('Error generating AI summary:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to generate summary',
+      error: error.message
     });
   }
 });
