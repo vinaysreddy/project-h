@@ -1,32 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import * as calculations from '@/utils/healthMetricsCalculator';
-import DashboardHeader from './components/DashboardHeader';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, UtensilsCrossed, LineChart, Layout, LogOut, Bot } from 'lucide-react';
-import OverviewTab from './tabs/OverviewTab/OverviewTab';
-import NutritionTab from '../nutrition/NutritionCard';
-import WorkoutTab from '../workout/WorkoutTab';
+import { 
+  Activity, UtensilsCrossed, Bot, User, 
+  PieChart, ArrowRight, LogOut, ChevronRight 
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import AICoach from '../coach/AICoach';
-import DebugPanel from '../../components/DebugPanel';
+
+// Import components
+import DashboardHeader from './components/DashboardHeader';
+import HealthSummary from './components/HealthSummary';
+import DailyPlan from './components/DailyPlan';
+import AiCoachWidget from './components/AiCoachWidget';
+import NutritionCard from '../nutrition/NutritionCard'; 
+import WorkoutCard from '../workout/WorkoutCard'; 
+import AiCoachCard from './components/AiCoachCard';
 
 const Dashboard = () => {
   const { currentUser, userProfile, onboardingData, fetchUserData, fetchOnboardingData, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('home');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
   const [healthMetrics, setHealthMetrics] = useState({});
-
-  // Handle logout action
-  const handleLogout = async () => {
-    try {
-      await logout();
-      // Redirect will happen automatically through the auth state change
-    } catch (error) {
-      console.error("Failed to log out:", error);
-    }
-  };
 
   // Fetch user data and process it
   useEffect(() => {
@@ -34,8 +32,7 @@ const Dashboard = () => {
       console.log("🔄 Dashboard: Starting to load user data...");
       try {
         setIsLoading(true);
-        setError(null); // Reset any previous errors
-        console.log("🔄 Dashboard: Loading state set, previous errors cleared");
+        setError(null);
         
         // Ensure we have both user profile and onboarding data
         let profile = userProfile;
@@ -48,10 +45,7 @@ const Dashboard = () => {
         if (!profile) {
           console.log("🔄 Dashboard: User profile not found in state, fetching from API...");
           profile = await fetchUserData();
-          console.log("📋 Dashboard: Fetched user profile:", profile);
-          
           if (!profile) {
-            console.error("❌ Dashboard: Could not retrieve user profile from API");
             throw new Error('Could not retrieve user profile');
           }
         }
@@ -60,12 +54,8 @@ const Dashboard = () => {
         if (!onboarding) {
           console.log("🔄 Dashboard: Onboarding data not found in state, fetching from API...");
           onboarding = await fetchOnboardingData();
-          console.log("📋 Dashboard: Fetched onboarding data:", onboarding);
-          // Don't throw if onboarding is null - new users might not have it
         }
         
-        console.log("🔄 Dashboard: Formatting user data from API responses...");
-        // Format data from both API responses with safe fallbacks
         const formattedUserData = {
           // From user profile
           displayName: profile?.name || profile?.displayName || '',
@@ -77,8 +67,8 @@ const Dashboard = () => {
           gender: onboarding?.gender || '',
           height: onboarding?.height_in_cm || 0,
           weight: onboarding?.weight_in_kg || 0,
-          heightUnit: 'cm',  // Backend stores in cm
-          weightUnit: 'kg',  // Backend stores in kg
+          heightUnit: 'cm',
+          weightUnit: 'kg',
           primaryGoal: onboarding?.primary_fitness_goal || '',
           targetWeight: onboarding?.target_weight || 0,
           activityLevel: onboarding?.daily_activity_level || '',
@@ -92,28 +82,21 @@ const Dashboard = () => {
         
         // Calculate health metrics only if we have necessary data
         if (formattedUserData.height > 0 && formattedUserData.weight > 0) {
-          console.log("🔄 Dashboard: Required data available, calculating health metrics...");
           calculateHealthMetrics(formattedUserData);
         } else {
           console.warn("⚠️ Dashboard: Missing height or weight data for calculations");
-          console.log("ℹ️ Dashboard: Height:", formattedUserData.height, "Weight:", formattedUserData.weight);
         }
       } catch (error) {
         console.error("❌ Dashboard: Error loading dashboard data:", error);
-        console.error("❌ Dashboard: Error details:", error.stack);
         setError(error.message || 'Failed to load dashboard data');
       } finally {
-        console.log("✅ Dashboard: Data loading process complete");
         setIsLoading(false);
       }
     };
     
     if (currentUser) {
-      console.log("🔄 Dashboard: User is authenticated, loading data...");
-      console.log("👤 Current user:", currentUser.email);
       loadUserData();
     } else {
-      console.log("⚠️ Dashboard: No authenticated user found");
       setIsLoading(false);
       setError("No authenticated user found. Please log in.");
     }
@@ -121,23 +104,18 @@ const Dashboard = () => {
 
   // Separate function to calculate health metrics
   const calculateHealthMetrics = (userData) => {
-    console.log("🔄 Dashboard: Starting health metrics calculation...");
     try {
       if (!userData.height || !userData.weight) {
-        console.warn("⚠️ Dashboard: Cannot calculate metrics - missing height or weight");
-        return; // Exit early if data is missing
+        return;
       }
       
-      console.log("🔄 Dashboard: Calculating BMI...");
       const bmi = calculations.calculateBMI(
         userData.height, 
         userData.weight, 
         userData.heightUnit,
         userData.weightUnit
       );
-      console.log("📊 Dashboard: BMI calculated:", bmi);
       
-      console.log("🔄 Dashboard: Calculating BMR...");
       const bmr = calculations.calculateBMR(
         userData.height,
         userData.weight,
@@ -146,27 +124,15 @@ const Dashboard = () => {
         userData.heightUnit,
         userData.weightUnit
       );
-      console.log("📊 Dashboard: BMR calculated:", bmr);
       
-      console.log("🔄 Dashboard: Calculating TDEE...");
       const tdee = calculations.calculateTDEE(bmr, userData.activityLevel);
-      console.log("📊 Dashboard: TDEE calculated:", tdee);
       
-      console.log("🔄 Dashboard: Calculating calorie target...");
       const calorieTarget = calculations.calculateCalorieTarget(tdee, userData.primaryGoal);
-      console.log("📊 Dashboard: Calorie target calculated:", calorieTarget);
       
-      console.log("🔄 Dashboard: Calculating macros...");
       const macros = calculations.calculateMacros(calorieTarget, userData.primaryGoal);
-      console.log("📊 Dashboard: Macros calculated:", macros);
       
-      // Get BMI category and color
-      console.log("🔄 Dashboard: Determining BMI category...");
       const { category: bmiCategory, color: bmiColor } = calculations.getBMICategory(bmi);
-      console.log("📊 Dashboard: BMI Category:", bmiCategory, "Color:", bmiColor);
       
-      // Update health metrics state
-      console.log("🔄 Dashboard: Updating health metrics state...");
       setHealthMetrics({
         bmi,
         bmiCategory,
@@ -177,10 +143,17 @@ const Dashboard = () => {
         bmr,
         macros     
       });
-      console.log("✅ Dashboard: Health metrics updated successfully");
     } catch (error) {
       console.error("❌ Dashboard: Error calculating health metrics:", error);
-      console.error("❌ Dashboard: Error details:", error.stack);
+    }
+  };
+
+  // Handle logout action
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Failed to log out:", error);
     }
   };
 
@@ -210,103 +183,46 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto relative">
-      {/* User profile and logout area */}
-      <div className="absolute top-4 right-4 z-10 flex items-center space-x-4">
-        {/* User profile info */}
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+      {/* User profile area */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Your Health Dashboard</h1>
+        
         {userData && (
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             {userData.photoURL ? (
               <img 
                 src={userData.photoURL} 
                 alt={userData.displayName || "User"} 
-                className="h-10 w-10 rounded-full border-2 border-white shadow-sm"
+                className="h-8 w-8 rounded-full border-2 border-white shadow-sm"
               />
             ) : (
-              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] flex items-center justify-center text-white font-medium shadow-sm">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] flex items-center justify-center text-white">
                 {userData.displayName ? userData.displayName.charAt(0).toUpperCase() : "U"}
               </div>
             )}
-            
-            <div className="ml-3 hidden md:block">
-              <p className="text-sm font-medium text-gray-700">{userData.displayName || "User"}</p>
-              <p className="text-xs text-gray-500 truncate max-w-[150px]">{userData.email}</p>
-            </div>
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600">
+              <LogOut className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
           </div>
         )}
-        
-        {/* Logout button */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4D55CC]"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Logout
-        </button>
       </div>
 
-      <DashboardHeader 
-        userData={userData || {}} 
-        healthMetrics={healthMetrics} 
+      {/* Add the DashboardHeader component */}
+      <DashboardHeader
+        userData={userData || {}}
+        healthMetrics={healthMetrics}
       />
-      
-      {/* Tabs for different dashboard sections */}
-      <Tabs defaultValue="overview" className="w-full mt-8" onValueChange={setActiveTab}>
-        <div className="border-b mb-6">
-          <TabsList className="flex justify-between max-w-3xl mx-auto">
-            {/* Tab triggers */}
-            <TabsTrigger 
-              value="overview" 
-              className={`flex items-center pb-2 px-4 border-b-2 transition-colors ${
-                activeTab === 'overview' 
-                  ? 'border-[#4D55CC] text-[#4D55CC] font-medium' 
-                  : 'border-transparent hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Layout className="h-4 w-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            
-            {/* Other tab triggers */}
-            <TabsTrigger 
-              value="nutrition" 
-              className={`flex items-center pb-2 px-4 border-b-2 transition-colors ${
-                activeTab === 'nutrition' 
-                  ? 'border-[#3E7B27] text-[#3E7B27] font-medium' 
-                  : 'border-transparent hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <UtensilsCrossed className="h-4 w-4 mr-2" />
-              Nutrition
-            </TabsTrigger>
-            
-            <TabsTrigger 
-              value="fitness" 
-              className={`flex items-center pb-2 px-4 border-b-2 transition-colors ${
-                activeTab === 'fitness' 
-                  ? 'border-[#e72208] text-[#e72208] font-medium' 
-                  : 'border-transparent hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Activity className="h-4 w-4 mr-2" />
-              Fitness
-            </TabsTrigger>  
 
-            <TabsTrigger 
-              value="coach" 
-              className={`flex items-center pb-2 px-4 border-b-2 transition-colors ${
-                activeTab === 'coach' 
-                  ? 'border-[#4D55CC] text-[#4D55CC] font-medium' 
-                  : 'border-transparent hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Bot className="h-4 w-4 mr-2" />
-              Coach
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      {/* Main dashboard content */}
+      <Tabs defaultValue="home" className="w-full mt-6" onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-3 mb-6">
+          <TabsTrigger value="home">Home</TabsTrigger>
+          <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
+          <TabsTrigger value="fitness">Fitness</TabsTrigger>
+        </TabsList>
 
-        {/* Loading state */}
         {isLoading ? (
           <div className="w-full h-64 flex justify-center items-center">
             <div className="flex flex-col items-center">
@@ -316,41 +232,104 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
-            {/* Tab contents */}
-            <TabsContent value="overview" className="animate-in fade-in-50 duration-300">
-              <OverviewTab 
+            {/* Home Tab - Main Dashboard */}
+            <TabsContent value="home" className="space-y-6">
+              {/* Health Metrics Summary Card */}
+              <HealthSummary 
                 userData={userData || {}} 
-                healthMetrics={healthMetrics} 
+                healthMetrics={healthMetrics}
               />
+              
+              {/* AI Coach Widget - Condensed version */}
+              <AiCoachWidget 
+                userData={userData || {}} 
+                healthMetrics={healthMetrics}
+                onExpandClick={() => setActiveTab('coach')}
+              />
+              
+              {/* Today's Plan Card (combines nutrition & fitness) */}
+              <DailyPlan 
+                userData={userData || {}}
+                healthMetrics={healthMetrics}
+                onNutritionClick={() => setActiveTab('nutrition')}
+                onFitnessClick={() => setActiveTab('fitness')}
+              />
+              
+              {/* Quick Actions Card */}
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="text-md font-medium mb-3">Quick Actions</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="justify-between" 
+                      onClick={() => setActiveTab('nutrition')}
+                    >
+                      <div className="flex items-center">
+                        <UtensilsCrossed className="h-4 w-4 mr-2" />
+                        <span>My Meal Plan</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="justify-between" 
+                      onClick={() => setActiveTab('fitness')}
+                    >
+                      <div className="flex items-center">
+                        <Activity className="h-4 w-4 mr-2" />
+                        <span>My Workouts</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="justify-between"
+                      onClick={() => setActiveTab('coach')}
+                    >
+                      <div className="flex items-center">
+                        <Bot className="h-4 w-4 mr-2" />
+                        <span>Ask Coach</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="justify-between"
+                    >
+                      <div className="flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        <span>Update Profile</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
             
-            <TabsContent value="nutrition" className="animate-in fade-in-50 duration-300">
-              <NutritionTab 
-                userData={userData || {}} 
-                healthMetrics={healthMetrics} 
-              />
-            </TabsContent>
-            
-            <TabsContent value="fitness" className="animate-in fade-in-50 duration-300">
-              <WorkoutTab
+            {/* Nutrition Tab */}
+            <TabsContent value="nutrition">
+              <NutritionCard 
                 userData={userData || {}}
                 healthMetrics={healthMetrics}
               />
             </TabsContent>
             
-            <TabsContent value="progress" className="animate-in fade-in-50 duration-300">
-              {/* Improved placeholder */}
-              <div className="text-center p-12 border border-dashed rounded-lg">
-                <LineChart className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">Progress Tracking Coming Soon</h3>
-                <p className="text-gray-500 max-w-md mx-auto">
-                  Soon you'll be able to track your progress over time with detailed charts and insights. Check back after your journey begins!
-                </p>
-              </div>
+            {/* Fitness Tab */}
+            <TabsContent value="fitness">
+              <WorkoutCard
+                userData={userData || {}}
+                healthMetrics={healthMetrics}
+              />
             </TabsContent>
-
-            <TabsContent value="coach" className="animate-in fade-in-50 duration-300">
-              <AICoach
+            
+            {/* Coach Tab */}
+            <TabsContent value="coach">
+              <AiCoachCard
                 userData={userData || {}}
                 healthMetrics={healthMetrics}
               />
@@ -358,7 +337,6 @@ const Dashboard = () => {
           </>
         )}
       </Tabs>
-      <DebugPanel />
     </div>
   );
 };

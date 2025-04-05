@@ -21,7 +21,7 @@ import {
   getDietPlan
 } from './services/nutritionService';
 
-const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
+const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
   const { currentUser, getToken } = useAuth();
   const [activeDay, setActiveDay] = useState('day1');
   const [dietPlan, setDietPlan] = useState(null);
@@ -562,4 +562,4 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
   );
 };
 
-export default NutritionTab;
+export default NutritionCard;

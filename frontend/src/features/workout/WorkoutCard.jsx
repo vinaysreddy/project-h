@@ -25,7 +25,7 @@ import WorkoutQuestionnaire from './components/WorkoutQuestionnaire';
 import WorkoutPlanGenerator from './components/WorkoutPlanGenerator';
 import ExerciseCard from './components/ExerciseCard';
 
-const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
+const WorkoutCard = ({ userData = {}, healthMetrics = {} }) => {
   const { currentUser, getToken } = useAuth();
   
   // State for workout plan and preferences
@@ -748,4 +748,4 @@ const WorkoutTab = ({ userData = {}, healthMetrics = {} }) => {
   );
 };
 
-export default WorkoutTab;
+export default WorkoutCard;
