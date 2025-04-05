@@ -14,11 +14,12 @@ import DietQuestionnaire from './components/DietQuestionnaire';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { transformDietPlanData } from './utils/nutritionDataFormatter';
-import { 
+import {
   getDietQuestionnaire,
   submitDietQuestionnaire,
   generateDietPlan,
-  getDietPlan
+  getDietPlan,
+  calculateMacroTargets
 } from './services/nutritionService';
 
 const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
@@ -29,47 +30,50 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
   const [submissionError, setSubmissionError] = useState(null);
-  
+
   // Destructure with default values to prevent errors
-  const { 
+  const {
     calorieTarget = 2000,
     macros = { protein: 30, carbs: 40, fat: 30 },
     tdee = 2200
   } = healthMetrics || {};
-  
+
+  // Calculate the macro targets once using the utility function
+  const macroTargets = calculateMacroTargets(calorieTarget, macros);
+
   // Check if user has existing diet preferences
   useEffect(() => {
     const checkDietPreferences = async () => {
       console.log("🔄 Starting diet preferences check flow...");
       try {
         setIsLoadingPreferences(true);
-        
+
         // Get auth token
         const token = await getToken();
         console.log("✅ Authentication token obtained");
-        
+
         if (!token) {
           console.error("❌ No auth token available");
           throw new Error('Authentication required');
         }
-        
+
         // Fetch user's diet data using the service function
         console.log("🔄 Fetching user diet questionnaire data...");
         const response = await getDietQuestionnaire(token);
         console.log("📋 Diet questionnaire API response:", response);
-        
+
         // If we have diet data, store it
         if (response && response.data) {
           console.log("✅ Diet preferences found in backend");
           setDietPreferences(response.data);
           setShowQuestionnaire(false);
-          
+
           // Also fetch the existing diet plan if available
           try {
             console.log("🔄 Fetching existing diet plan...");
             const dietPlanResponse = await getDietPlan(token);
             console.log("📋 Diet plan response:", dietPlanResponse);
-            
+
             if (dietPlanResponse && dietPlanResponse.meal_plan) {
               console.log("🔄 Transforming diet plan data...");
               const formattedDietPlan = transformDietPlanData(dietPlanResponse);
@@ -90,27 +94,27 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
         setIsLoadingPreferences(false);
       }
     };
-    
+
     if (currentUser) {
       checkDietPreferences();
     }
   }, [currentUser, getToken]);
-  
+
   // Update handleDietPreferencesSubmit function
   const handleDietPreferencesSubmit = async (preferencesData) => {
     try {
       setSubmissionError(null);
       setIsLoadingPreferences(true);
-      
+
       // Get auth token
       const token = await getToken();
-      
+
       if (!token) {
         throw new Error('Authentication required');
       }
-      
+
       console.log('Submitting diet preferences to backend:', preferencesData);
-      
+
       const completeData = {
         ...preferencesData,  // All the questionnaire data
         // Add required fields with proper names
@@ -123,73 +127,73 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
         food_restrictions: preferencesData.foodRestrictions,
         allergies: preferencesData.allergies
       };
-      
+
       // 1. Submit diet questionnaire
       const questionnaireResponse = await submitDietQuestionnaire(completeData, token);
       console.log('Diet questionnaire submission response:', questionnaireResponse);
-      
+
       // 2. Generate diet plan - no need to send all the data again, backend will use stored questionnaire
       const dietPlanResponse = await generateDietPlan({}, token);
       console.log('Diet plan generation response:', dietPlanResponse);
-      
+
       // 3. Get the generated plan
       const planResponse = await getDietPlan(token);
       console.log('Diet plan retrieval response:', planResponse);
-      
+
       // Format the data using the utility function
       if (planResponse && planResponse.meal_plan) {
         const formattedDietPlan = transformDietPlanData(planResponse);
         setDietPlan(formattedDietPlan);
       }
-      
+
       // Update preferences state and hide questionnaire
       setDietPreferences(completeData);
       setShowQuestionnaire(false);
     } catch (error) {
       console.error('Error in diet workflow:', error);
       let errorMessage = 'Failed to process your diet preferences. Please try again.';
-      
+
       if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setSubmissionError(errorMessage);
     } finally {
       setIsLoadingPreferences(false);
     }
   };
-  
+
   // Handle diet plan generated from the DietPlanGenerator
   const handleDietPlanGenerated = async (generatedPlan) => {
     try {
       // Get auth token
-      const token = typeof getToken === 'function' 
-        ? await getToken() 
+      const token = typeof getToken === 'function'
+        ? await getToken()
         : await currentUser?.getIdToken(true);
-        
+
       if (!token) {
         throw new Error('Authentication required');
       }
-      
+
       // Save the generated plan to the backend using service function
       await generateDietPlan({
         plan: generatedPlan,
         dietPreferences: dietPreferences
       }, token);
-      
+
       // Update local state
       setDietPlan(generatedPlan);
     } catch (error) {
       console.error('Error saving generated diet plan:', error);
     }
   };
-  
+
   // Retry submitting the questionnaire
   const retrySubmission = () => {
     setSubmissionError(null);
     setShowQuestionnaire(true);
   };
-  
+
   // Loading state while checking preferences
   if (isLoadingPreferences) {
     return (
@@ -201,7 +205,7 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
       </div>
     );
   }
-  
+
   // Show error state
   if (submissionError) {
     return (
@@ -229,13 +233,13 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
               </div>
             </div>
           </div>
-          
+
           <p className="text-sm text-gray-500 max-w-md text-center mb-6">
             This could be due to a connection issue or a problem with our service. Please try again.
           </p>
-          
-          <Button 
-            onClick={retrySubmission} 
+
+          <Button
+            onClick={retrySubmission}
             className="bg-[#3E7B27] hover:bg-[#2d5b1d]"
           >
             <Apple className="h-4 w-4 mr-2" />
@@ -245,38 +249,38 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
       </Card>
     );
   }
-  
+
   // Show questionnaire if needed
   if (showQuestionnaire) {
-    return <DietQuestionnaire 
-      userData={userData} 
-      healthMetrics={healthMetrics} 
-      onSubmit={handleDietPreferencesSubmit} 
+    return <DietQuestionnaire
+      userData={userData}
+      healthMetrics={healthMetrics}
+      onSubmit={handleDietPreferencesSubmit}
     />;
   }
-  
+
   // If we have preferences but no diet plan yet, show the generator
   if (dietPreferences && !dietPlan) {
-    return <DietPlanGenerator 
+    return <DietPlanGenerator
       userData={{
         ...userData,
         dietPreference: dietPreferences.dietType,
         foodRestrictions: dietPreferences.foodRestrictions,
         allergies: dietPreferences.allergies
-      }} 
-      healthMetrics={healthMetrics} 
-      onDietPlanGenerated={handleDietPlanGenerated} 
+      }}
+      healthMetrics={healthMetrics}
+      onDietPlanGenerated={handleDietPlanGenerated}
     />;
   }
-  
+
   // If no diet plan yet, show the generator
   if (!dietPlan) {
     return <DietPlanGenerator userData={userData} healthMetrics={healthMetrics} onDietPlanGenerated={handleDietPlanGenerated} />;
   }
-  
+
   // Get the active day plan
   const activeDayPlan = dietPlan[activeDay] || dietPlan.day1;
-  
+
   // Calculate daily totals if not provided
   const dailyTotals = activeDayPlan.dailyTotals || {
     calories: 0,
@@ -284,10 +288,10 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
     carbs: 0,
     fat: 0
   };
-  
+
   // Calculate percentage of target
   const caloriePercentage = Math.round((dailyTotals.calories / calorieTarget) * 100);
-  
+
   return (
     <div className="space-y-8">
       {/* Nutrition Summary Card */}
@@ -329,24 +333,21 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
                 {caloriePercentage}% of daily target
               </p>
             </div>
-            
+
             <div className="space-y-3">
               <h4 className="text-sm font-medium mb-1">Macronutrient Targets</h4>
               <div className="grid grid-cols-3 gap-2">
                 <div className="p-2 bg-blue-50 rounded-lg text-center">
                   <p className="text-xs text-gray-500">Protein</p>
-                  <p className="font-bold">{macros.protein}%</p>
-                  <p className="text-xs">{Math.round(dailyTotals.protein || 0)}g</p>
+                  <p className="font-bold">{Math.round(dailyTotals.protein || 0)}g</p>
                 </div>
                 <div className="p-2 bg-green-50 rounded-lg text-center">
                   <p className="text-xs text-gray-500">Carbs</p>
-                  <p className="font-bold">{macros.carbs}%</p>
-                  <p className="text-xs">{Math.round(dailyTotals.carbs || 0)}g</p>
+                  <p className="font-bold">{Math.round(dailyTotals.carbs || 0)}g</p>
                 </div>
                 <div className="p-2 bg-yellow-50 rounded-lg text-center">
                   <p className="text-xs text-gray-500">Fat</p>
-                  <p className="font-bold">{macros.fat}%</p>
-                  <p className="text-xs">{Math.round(dailyTotals.fat || dailyTotals.fats || 0)}g</p>
+                  <p className="font-bold">{Math.round(dailyTotals.fat || dailyTotals.fats || 0)}g</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
@@ -357,7 +358,7 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Meal Plan Card */}
       <Card>
         <CardHeader>
@@ -366,17 +367,16 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
               <Utensils className="h-5 w-5 mr-2 text-[#3E7B27]" />
               Your Meal Plan
             </CardTitle>
-            
+
             {/* Properly configured Tabs component */}
             <Tabs value={activeDay} onValueChange={setActiveDay}>
               <TabsList className="bg-gray-100 p-1 rounded-md">
                 {Object.keys(dietPlan).map((day) => (
-                  <TabsTrigger 
+                  <TabsTrigger
                     key={day}
                     value={day}
-                    className={`px-3 py-1 text-sm rounded-md ${
-                      activeDay === day ? 'bg-white shadow-sm' : ''
-                    }`}
+                    className={`px-3 py-1 text-sm rounded-md ${activeDay === day ? 'bg-white shadow-sm' : ''
+                      }`}
                   >
                     {dietPlan[day].title}
                   </TabsTrigger>
@@ -405,7 +405,7 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
                     <span>{meal.time}</span>
                   </div>
                 </div>
-                
+
                 <div className="p-4">
                   <div className="flex justify-between items-start mb-3">
                     <h4 className="font-medium">{meal.name}</h4>
@@ -413,9 +413,9 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
                       {meal.calories} cal
                     </Badge>
                   </div>
-                  
+
                   <p className="text-sm text-gray-600 mb-3">{meal.description}</p>
-                  
+
                   <div className="grid grid-cols-3 gap-2 mb-3">
                     <div className="text-center text-xs p-1 bg-blue-50 rounded">
                       <span className="block text-gray-500">Protein</span>
@@ -430,20 +430,20 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
                       <span className="font-bold">{meal.fat}g</span>
                     </div>
                   </div>
-                  
+
                   <div className="mt-3">
                     <h5 className="text-xs font-medium mb-2">Meal Items:</h5>
                     <div className="space-y-2">
                       {meal.items.map((item, i) => {
                         // Get the original food string or object from the raw data for more info
                         const foodData = activeDayPlan.originalFoods?.[meal.type.toLowerCase()]?.[i] || '';
-                        
+
                         // Initialize variables for nutritional values
                         let calories = '';
                         let protein = '';
                         let carbs = '';
                         let fats = '';
-                        
+
                         // Handle different food data formats
                         if (typeof foodData === 'string') {
                           // Case 1: Extract nutritional information using regex for string format
@@ -451,7 +451,7 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
                           const proteinMatch = foodData.match(/(\d+(?:\.\d+)?)g\s*protein/);
                           const carbsMatch = foodData.match(/(\d+(?:\.\d+)?)g\s*carbs/);
                           const fatsMatch = foodData.match(/(\d+(?:\.\d+)?)g\s*fats?/);
-                          
+
                           // Get values or default to empty string
                           calories = calorieMatch ? calorieMatch[1] : '';
                           protein = proteinMatch ? proteinMatch[1] : '';
@@ -463,8 +463,8 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
                             calories = foodData.nutrients.calories?.replace(/\D/g, '') || '';
                             protein = foodData.nutrients.protein?.replace(/\D/g, '') || '';
                             carbs = foodData.nutrients.carbs?.replace(/\D/g, '') || '';
-                            fats = foodData.nutrients.fats?.replace(/\D/g, '') || 
-                                   foodData.nutrients.fat?.replace(/\D/g, '') || '';
+                            fats = foodData.nutrients.fats?.replace(/\D/g, '') ||
+                              foodData.nutrients.fat?.replace(/\D/g, '') || '';
                           } else {
                             // Try to find calorie/macro info in other formats
                             calories = foodData.calories || '';
@@ -473,7 +473,7 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
                             fats = foodData.fat || foodData.fats || '';
                           }
                         }
-                        
+
                         return (
                           <div key={i} className="border-b border-gray-100 pb-2 last:border-0 last:pb-0">
                             <div className="flex items-start">
@@ -485,7 +485,7 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
                                     <span className="text-xs text-gray-500 ml-2">{calories} cal</span>
                                   )}
                                 </div>
-                                
+
                                 {(protein || carbs || fats) && (
                                   <div className="mt-1 flex space-x-3 text-[10px] text-gray-500">
                                     {protein && (
@@ -536,11 +536,11 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
                             <td className="p-2 text-right">{meal.fat}g</td>
                           </tr>
                           <tr className="bg-gray-100">
-                            <td className="p-2 text-left font-medium">% of Daily</td>
-                            <td className="p-2 text-right">{Math.round((meal.calories / dailyTotals.calories) * 100)}%</td>
-                            <td className="p-2 text-right">{Math.round((meal.protein / dailyTotals.protein) * 100)}%</td>
-                            <td className="p-2 text-right">{Math.round((meal.carbs / dailyTotals.carbs) * 100)}%</td>
-                            <td className="p-2 text-right">{Math.round((meal.fat / (dailyTotals.fat || dailyTotals.fats)) * 100)}%</td>
+                            <td className="p-2 text-left font-medium">Daily Goal</td>
+                            <td className="p-2 text-right">{dailyTotals.calories} cal</td>
+                            <td className="p-2 text-right">{dailyTotals.protein}g</td>
+                            <td className="p-2 text-right">{dailyTotals.carbs}g</td>
+                            <td className="p-2 text-right">{dailyTotals.fat || dailyTotals.fats}g</td>
                           </tr>
                         </tbody>
                       </table>

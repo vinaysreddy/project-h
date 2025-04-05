@@ -8,7 +8,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword
 } from 'firebase/auth';
-import { auth, googleProvider, facebookProvider, firebaseApp } from '../config/firebase';
+import { auth, googleProvider, facebookProvider } from '../config/firebase';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3000';
