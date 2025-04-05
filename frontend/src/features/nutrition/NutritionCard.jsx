@@ -18,8 +18,7 @@ import {
   getDietQuestionnaire,
   submitDietQuestionnaire,
   generateDietPlan,
-  getDietPlan,
-  calculateMacroTargets
+  getDietPlan
 } from './services/nutritionService';
 
 const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
@@ -34,12 +33,9 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
   // Destructure with default values to prevent errors
   const {
     calorieTarget = 2000,
-    macros = { protein: 30, carbs: 40, fat: 30 },
+    macros: _MACROS = { protein: 30, carbs: 40, fat: 30 },
     tdee = 2200
   } = healthMetrics || {};
-
-  // Calculate the macro targets once using the utility function
-  const macroTargets = calculateMacroTargets(calorieTarget, macros);
 
   // Check if user has existing diet preferences
   useEffect(() => {
