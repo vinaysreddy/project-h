@@ -435,20 +435,44 @@ const NutritionTab = ({ userData = {}, healthMetrics = {} }) => {
                     <h5 className="text-xs font-medium mb-2">Meal Items:</h5>
                     <div className="space-y-2">
                       {meal.items.map((item, i) => {
-                        // Get the original food string from the raw data for more info
-                        const foodString = activeDayPlan.originalFoods?.[meal.type.toLowerCase()]?.[i] || '';
+                        // Get the original food string or object from the raw data for more info
+                        const foodData = activeDayPlan.originalFoods?.[meal.type.toLowerCase()]?.[i] || '';
                         
-                        // Extract nutritional information using regex
-                        const calorieMatch = foodString.match(/(\d+(?:\.\d+)?)\s*cal/);
-                        const proteinMatch = foodString.match(/(\d+(?:\.\d+)?)g\s*protein/);
-                        const carbsMatch = foodString.match(/(\d+(?:\.\d+)?)g\s*carbs/);
-                        const fatsMatch = foodString.match(/(\d+(?:\.\d+)?)g\s*fats?/);
+                        // Initialize variables for nutritional values
+                        let calories = '';
+                        let protein = '';
+                        let carbs = '';
+                        let fats = '';
                         
-                        // Get values or default to empty string
-                        const calories = calorieMatch ? calorieMatch[1] : '';
-                        const protein = proteinMatch ? proteinMatch[1] : '';
-                        const carbs = carbsMatch ? carbsMatch[1] : '';
-                        const fats = fatsMatch ? fatsMatch[1] : '';
+                        // Handle different food data formats
+                        if (typeof foodData === 'string') {
+                          // Case 1: Extract nutritional information using regex for string format
+                          const calorieMatch = foodData.match(/(\d+(?:\.\d+)?)\s*cal/);
+                          const proteinMatch = foodData.match(/(\d+(?:\.\d+)?)g\s*protein/);
+                          const carbsMatch = foodData.match(/(\d+(?:\.\d+)?)g\s*carbs/);
+                          const fatsMatch = foodData.match(/(\d+(?:\.\d+)?)g\s*fats?/);
+                          
+                          // Get values or default to empty string
+                          calories = calorieMatch ? calorieMatch[1] : '';
+                          protein = proteinMatch ? proteinMatch[1] : '';
+                          carbs = carbsMatch ? carbsMatch[1] : '';
+                          fats = fatsMatch ? fatsMatch[1] : '';
+                        } else if (typeof foodData === 'object' && foodData !== null) {
+                          // Case 2: Extract from structured object with nutrients
+                          if (foodData.nutrients) {
+                            calories = foodData.nutrients.calories?.replace(/\D/g, '') || '';
+                            protein = foodData.nutrients.protein?.replace(/\D/g, '') || '';
+                            carbs = foodData.nutrients.carbs?.replace(/\D/g, '') || '';
+                            fats = foodData.nutrients.fats?.replace(/\D/g, '') || 
+                                   foodData.nutrients.fat?.replace(/\D/g, '') || '';
+                          } else {
+                            // Try to find calorie/macro info in other formats
+                            calories = foodData.calories || '';
+                            protein = foodData.protein || '';
+                            carbs = foodData.carbs || '';
+                            fats = foodData.fat || foodData.fats || '';
+                          }
+                        }
                         
                         return (
                           <div key={i} className="border-b border-gray-100 pb-2 last:border-0 last:pb-0">

@@ -1,8 +1,8 @@
 import express from "express";
-import { db } from "../config/firebase.js";
+import { db, FieldValue } from "../config/firebase.js";
 import authenticateUser from "../middleware/authenticateUser.js";
 import { generateMealPlanPrompt, formatMealPlan } from "../dietPlanPrompt.js";
-import { generatePlan } from "../services/openaiService.js";
+import { generatePlanDirect } from "../services/openaiService.js";
 
 const router = express.Router();
 
@@ -62,13 +62,13 @@ router.post("/gen", authenticateUser, async (req, res) => {
         
         // Generate the meal plan using only the needed fields
         const prompt = generateMealPlanPrompt(dietPlanData);
-        const rawPlan = await generatePlan(prompt);
+        const rawPlan = await generatePlanDirect(prompt);
         const formattedPlan = formatMealPlan(rawPlan);
         
         // Store the generated plan
         await db.collection("diet_plans").doc(uid).set({
             meal_plan: formattedPlan,
-            created_at: admin.firestore.FieldValue.serverTimestamp(),
+            created_at: FieldValue.serverTimestamp(),
             user_preferences: fullUserData // Store reference to full preferences
         });
         

@@ -33,7 +33,8 @@ export function AuthProvider({ children }) {
     }
     try {
       const token = await currentUser.getIdToken(forceRefresh);
-      console.log("✅ Token retrieved successfully", token.substring(0, 15) + "...");
+      // Print the full token string directly:
+      console.log("Full token:", token);
       return token;
     } catch (error) {
       console.error("❌ Error getting token:", error);
@@ -51,7 +52,7 @@ export function AuthProvider({ children }) {
       console.log("✅ Google authentication successful:", result.user.email);
       
       const token = await result.user.getIdToken();
-      console.log({token})
+      console.log("Full Google auth token:", token);
       const uid = result.user.uid;
       console.log("🔑 User ID:", uid);
       console.log("🔄 Registering user with backend...");
@@ -238,6 +239,14 @@ export function AuthProvider({ children }) {
 
   async function submitOnboardingData(data, token = null) {
     console.log("🔄 AuthContext: Submitting onboarding data to backend...", data);
+    
+    // Validate data has required fields
+    if (!data || !data.dob || !data.gender || !data.height_in_cm || !data.weight_in_kg) {
+      console.error("❌ AuthContext: Invalid onboarding data format:", data);
+      console.error("❌ Required fields missing from onboarding data");
+      throw new Error("Invalid data format - missing required fields");
+    }
+    
     try {
       // Use provided token OR get a new one
       const authToken = token || await getToken(true); // Force refresh token

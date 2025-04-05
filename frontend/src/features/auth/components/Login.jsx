@@ -12,34 +12,6 @@ const Login = ({ onLoginSuccess, formData, onBackToLanding, onSwitchToLogin }) =
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Helper function to format onboarding data consistently
-  const formatOnboardingData = () => {
-    // Only proceed if we have form data
-    if (!formData || Object.keys(formData).filter(key => !!formData[key]).length === 0) {
-      console.warn("⚠️ No onboarding form data available");
-      return null;
-    }
-    
-    return {
-      dob: formData.dateOfBirth || '',
-      gender: formData.gender?.toLowerCase() || '',
-      height_in_cm: formData.heightUnit === 'cm' 
-        ? parseInt(formData.height || '0') 
-        : Math.round(parseInt(formData.height || '0') * 2.54),
-      weight_in_kg: formData.weightUnit === 'kg'
-        ? parseInt(formData.weight || '0')
-        : Math.round(parseInt(formData.weight || '0') / 2.205),
-      primary_fitness_goal: formData.primaryGoal || '',
-      target_weight: parseInt(formData.targetWeight || '0') || 0,
-      daily_activity_level: formData.activityLevel || '',
-      exercise_availability: formData.weeklyExercise || '',
-      health_conditions: Array.isArray(formData.healthConditions) 
-        ? formData.healthConditions 
-        : [],
-      other_medical_conditions: formData.otherCondition || ''
-    };
-  };
-
   // Unified handler for third-party auth methods
   const handleThirdPartySignIn = async (signInMethod, providerName) => {
     try {
@@ -53,31 +25,7 @@ const Login = ({ onLoginSuccess, formData, onBackToLanding, onSwitchToLogin }) =
       
       console.log(`✅ ${providerName} authentication successful:`, result.user.email);
       
-      // Submit onboarding data if available
-      if (formData) {
-        try {
-          console.log("📊 Processing onboarding data submission...");
-          
-          // Format the data
-          const formattedData = formatOnboardingData();
-          
-          if (formattedData) {
-            console.log("📤 Submitting onboarding data:", formattedData);
-            
-            // Get a fresh token
-            const token = await result.user.getIdToken(true);
-            
-            // Submit the data with the fresh token
-            await submitOnboardingData(formattedData, token);
-            console.log("✅ Onboarding data submitted successfully");
-          }
-        } catch (onboardingError) {
-          console.error("❌ Failed to submit onboarding data:", onboardingError);
-          // We'll continue anyway - don't block the login process
-        }
-      }
-      
-      // Proceed to dashboard - let AppFlow handle pendingSubmission if needed
+      // Proceed to dashboard - let AppFlow handle pendingSubmission
       onLoginSuccess();
     } catch (err) {
       console.error(`❌ ${providerName} authentication error:`, err);

@@ -47,6 +47,10 @@ const AppFlow = () => {
   // Auto-submit onboarding data if we have both currentUser and pendingSubmission
   useEffect(() => {
     const submitPendingData = async () => {
+      console.log("🔍 Checking for pending onboarding data...");
+      console.log("👤 Current user:", currentUser?.email);
+      console.log("📦 Pending submission data:", pendingSubmission);
+      
       if (currentUser && pendingSubmission && Object.keys(pendingSubmission).length > 0) {
         console.log("🔄 Auto-submitting pending onboarding data after authentication...");
         setIsSubmitting(true);
@@ -137,13 +141,16 @@ const AppFlow = () => {
   };
 
   // When completing the onboarding form
-  const handleOnboardingComplete = (data) => {
-    console.log("📊 Onboarding completed, data saved:", data);
-    setFormData(data); // Save the questionnaire data
-    // Also save as pending submission for auto-submission after auth
-    setPendingSubmission(data);
+  const handleOnboardingComplete = () => {
+    console.log("📝 Saving onboarding form data for submission after authentication...");
+    console.log("📊 Form data to be submitted:", formData);
+    
+    // Save a deep copy of the form data to prevent modification
+    setPendingSubmission({...formData});
+    
+    // Continue to login
     setShowOnboarding(false);
-    setShowLogin(true); // Show login WITH signup options
+    setShowLogin(true);
   };
 
   // When login is successful
@@ -212,7 +219,7 @@ const AppFlow = () => {
   if (showLogin) {
     return <Login 
       onLoginSuccess={handleLoginSuccess} 
-      formData={formData} // Pass questionnaire data to login component
+      formData={pendingSubmission} // Use pendingSubmission here
       onBackToLanding={handleBackToLanding} // Add back functionality
       onSwitchToLogin={handleSwitchToLogin} // Add this
     />;
@@ -242,7 +249,7 @@ const AppFlow = () => {
       <OnboardingForm 
         formData={formData} 
         setFormData={setFormData} 
-        onSubmit={handleOnboardingComplete} 
+        onSubmit={() => handleOnboardingComplete()} // Make sure formData is passed
         onBackToLanding={handleBackToLanding} // Add back functionality
       />
     );
