@@ -236,3 +236,32 @@ const handleApiError = (error, defaultMessage) => {
   
   throw new Error(errorMessage);
 };
+
+/**
+ * Get AI analysis of sleep data
+ * @param {Object} data - Sleep data and insights
+ * @param {string} token - User auth token
+ * @returns {Promise<Object>} - Analysis results
+ */
+export const analyzeSleepData = async (data, token) => {
+  try {
+    const response = await fetch(`${API_URL}/coach/analyze-sleep`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to analyze sleep data');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error analyzing sleep data:', error);
+    throw error;
+  }
+};

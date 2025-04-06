@@ -298,3 +298,53 @@ export const generateSleepInsights = (sleepData) => {
     recommendations
   };
 };
+
+/**
+ * Prepares sleep data for AI processing by creating a condensed summary
+ * @param {Array} sleepData - Array of sleep data points
+ * @param {Object} sleepInsights - Calculated sleep insights
+ * @return {Object} AI-ready data summary
+ */
+export const prepareDataForAI = (sleepData, sleepInsights) => {
+  if (!sleepData || sleepData.length === 0 || !sleepInsights) return null;
+  
+  // Extract date range
+  const dates = sleepData.map(d => new Date(d.date)).sort((a, b) => a - b);
+  const startDate = dates[0];
+  const endDate = dates[dates.length - 1];
+  
+  // Format key metrics
+  const { 
+    averageSleepDuration, 
+    averageDeepSleep, 
+    averageRemSleep,
+    deepSleepPercentage,
+    remSleepPercentage,
+    sleepQualityScore,
+    sleepConsistency
+  } = sleepInsights;
+  
+  return {
+    dataPoints: sleepData.length,
+    dateRange: {
+      start: startDate.toISOString().split('T')[0],
+      end: endDate.toISOString().split('T')[0],
+      days: Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1
+    },
+    averages: {
+      totalSleep: averageSleepDuration,
+      totalSleepFormatted: formatHoursAndMinutes(averageSleepDuration),
+      deepSleep: averageDeepSleep,
+      deepSleepFormatted: formatHoursAndMinutes(averageDeepSleep),
+      deepSleepPercentage: Math.round(deepSleepPercentage),
+      remSleep: averageRemSleep,
+      remSleepFormatted: formatHoursAndMinutes(averageRemSleep),
+      remSleepPercentage: Math.round(remSleepPercentage)
+    },
+    scores: {
+      sleepQuality: sleepQualityScore,
+      sleepConsistency: sleepConsistency
+    },
+    summary: `${sleepData.length} days of sleep data analyzed. Average sleep: ${formatHoursAndMinutes(averageSleepDuration)}. Sleep quality score: ${sleepQualityScore}/100. Sleep consistency: ${sleepConsistency}/10.`
+  };
+};

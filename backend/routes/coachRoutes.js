@@ -268,7 +268,16 @@ router.post('/summary', authenticateUser, async (req, res) => {
       }
     } else if (context === 'sleep') {
       if (hasSleepData) {
-        prompt += `Focus on analyzing their sleep data and providing recommendations for improving sleep quality, duration, and consistency.`;
+        prompt += `IMPORTANT - You are analyzing sleep data with these metrics:
+${userData.sleepInsights}
+
+Focus on providing a personalized assessment of their sleep quality, patterns, and how it affects their overall health. 
+Address any concerning patterns in their sleep data and provide actionable recommendations to improve sleep quality.
+
+If their deep sleep percentage is below 15%, emphasize the importance of deep sleep.
+If their sleep consistency score is below 5/10, suggest ways to improve sleep schedule regularity.
+If their sleep quality score is above 80/100, acknowledge their good sleep habits.
+`;
       } else {
         prompt += `Focus on general sleep recommendations based on their health profile and ${combinedUserData.primaryGoal || 'health'} goals.`;
       }
@@ -310,6 +319,120 @@ router.post('/summary', authenticateUser, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to generate summary',
+      error: error.message
+    });
+  }
+});
+
+// Add this new route after your existing routes
+// This is specifically designed for sleep data analysis
+
+router.post('/analyze-sleep', authenticateUser, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const { sleepData, sleepInsights } = req.body;
+    
+    if (!sleepData || !sleepInsights) {
+      return res.status(400).json({
+        success: false,
+        message: 'Sleep data and insights are required'
+      });
+    }
+    
+    // Fetch user's name for personalization
+    const userDoc = await db.collection('onboarding_data').doc(uid).get();
+    const userName = userDoc.exists ? userDoc.data().displayName || 'User' : 'User';
+    
+    // Calculate date range
+    const dates = sleepData.map(d => new Date(d.date)).sort((a, b) => a - b);
+    const startDate = dates[0];
+    const endDate = dates[dates.length - 1];
+    const dayCount = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    
+    // Format the insights for the AI
+    const formattedInsights = {
+      averageSleepDuration: sleepInsights.averageSleepDuration,
+      averageSleepDurationFormatted: sleepInsights.averageSleepDuration ? 
+        `${Math.floor(sleepInsights.averageSleepDuration)} hours and ${Math.round((sleepInsights.averageSleepDuration % 1) * 60)} minutes` : 
+        'unknown',
+      deepSleepPercentage: Math.round(sleepInsights.deepSleepPercentage),
+      remSleepPercentage: Math.round(sleepInsights.remSleepPercentage),
+      sleepQualityScore: sleepInsights.sleepQualityScore,
+      sleepConsistency: sleepInsights.sleepConsistency,
+      dataPoints: sleepData.length,
+      dateRange: `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`,
+      dayCount: dayCount
+    };
+    
+    // Create specialized prompt for sleep analysis
+    const prompt = `
+      You are a sleep expert analyzing sleep data for ${userName}. Based on ${dayCount} days of sleep data from ${formattedInsights.dateRange}, analyze the following sleep metrics:
+      
+      - Average sleep duration: ${formattedInsights.averageSleepDurationFormatted}
+      - Deep sleep percentage: ${formattedInsights.deepSleepPercentage}% (healthy range is 15-25%)
+      - REM sleep percentage: ${formattedInsights.remSleepPercentage}% (healthy range is 20-25%)
+      - Sleep quality score: ${formattedInsights.sleepQualityScore}/100
+      - Sleep consistency score: ${formattedInsights.sleepConsistency}/10
+      
+      Provide a personalized sleep report formatted as follows:
+      
+      1. First paragraph: Comprehensive overview of sleep quality, duration, and main issues identified.
+      
+      2. Second paragraph: Specific analysis of sleep composition (deep sleep, REM sleep) and sleep consistency, with clear explanations of how these metrics impact overall health and wellbeing.
+      
+      3. Final paragraph: 2-3 specific, actionable recommendations tailored to their exact sleep metrics. Be specific and practical.
+      
+      DO NOT start with "Hi [name]!" or include any greeting.
+      DO NOT mention that you're an AI or analyzing data.
+      Write in a professional, clear, and accessible tone.
+      Be direct and specific with recommendations based on the actual metrics provided.
+      If sleep quality score is below 65, emphasize the health impacts of poor sleep.
+    `;
+    
+    // Call OpenAI with specialized prompt
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // Using the full model for better analysis
+      messages: [
+        {
+          role: "system",
+          content: "You are a sleep science expert who analyzes sleep data and provides concise, personalized insights and recommendations."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 200
+    });
+    
+    const analysis = response.choices[0].message.content.trim();
+    
+    // Determine sleep quality category based on score
+    let qualityCategory = "fair";
+    if (formattedInsights.sleepQualityScore >= 85) {
+      qualityCategory = "excellent";
+    } else if (formattedInsights.sleepQualityScore >= 70) {
+      qualityCategory = "good";
+    } else if (formattedInsights.sleepQualityScore < 50) {
+      qualityCategory = "poor";
+    }
+    
+    return res.status(200).json({
+      success: true,
+      analysis: {
+        summary: analysis,
+        qualityCategory: qualityCategory,
+        sleepScore: formattedInsights.sleepQualityScore,
+        dayCount: formattedInsights.dayCount
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error analyzing sleep data:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to analyze sleep data',
       error: error.message
     });
   }

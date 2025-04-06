@@ -254,6 +254,7 @@ const Dashboard = () => {
       {/* Single accent line for subtle brand presence */}
       <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-[#4D55CC]/30 via-[#3E7B27]/30 to-[#e72208]/30"></div>
       
+
       {/* Enhanced top navigation bar */}
       <div className="sticky top-0 z-30 w-full bg-white/95 border-b border-gray-100 shadow-sm backdrop-blur-sm">
   <div className="max-w-7xl mx-auto px-4 md:px-6">

@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Moon, Flame, Activity, BarChart2, Calendar, BedDouble, Clock, Sun, Coffee } from 'lucide-react';
 import FileUploader from './components/FileUploader';
-import { calculateSleepQualityScore, generateSleepInsights, formatHoursAndMinutes } from './utils/sleepAnalytics';
+import SleepAIAnalysis from './components/SleepAIAnalysis'; // Import the new component
+import { calculateSleepQualityScore, generateSleepInsights, formatHoursAndMinutes, prepareDataForAI } from './utils/sleepAnalytics';
 
 // Icon mapping for easy lookup
 const iconMap = {
@@ -23,7 +24,9 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [timeRange, setTimeRange] = useState('week'); // week, month, all
   const [sleepInsights, setSleepInsights] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // New state for tracking analysis
   
+  // Fixed useEffect with stable dependencies array
   useEffect(() => {
     if (sleepData) {
       // Filter based on time range
@@ -33,15 +36,28 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
       const insights = generateSleepInsights(filteredData);
       setSleepInsights(insights);
       
-      // Also update AI Coach with the new sleep data
-      if (onDataProcessed) {
-        onDataProcessed(filteredData);
+      // Only update AI Coach when not analyzing and if callback exists
+      if (onDataProcessed && !isAnalyzing && insights) {
+        // Prepare AI-friendly data format
+        const aiData = prepareDataForAI(filteredData, insights);
+        if (aiData) {
+          onDataProcessed(aiData);
+        }
       }
     }
-  }, [sleepData, timeRange]);
+  }, [sleepData, timeRange, isAnalyzing, onDataProcessed]); // Fixed dependency array
   
+  // Handle data processing with analysis status
   const handleDataProcessed = (data) => {
+    if (!data || data.length === 0) return;
+    
+    setIsAnalyzing(true);
     setSleepData(data);
+    
+    // Simulate AI processing time
+    setTimeout(() => {
+      setIsAnalyzing(false);
+    }, 2000);
   };
   
   const filterDataByTimeRange = (data, range) => {
@@ -96,6 +112,13 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
           </button>
         </div>
       </div>
+      
+      {/* NEW: AI Analysis Summary Card */}
+      <SleepAIAnalysis 
+        sleepData={filterDataByTimeRange(sleepData, timeRange)}
+        sleepInsights={sleepInsights}
+        isAnalyzing={isAnalyzing}
+      />
       
       {/* Sleep overview cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
