@@ -49,29 +49,42 @@ export const getChatHistory = async (token) => {
 /**
  * Gets a context-aware AI summary
  * @param {Object} data - User data, health metrics, and context
- * @param {string} token - Optional auth token for authenticated requests
+ * @param {string} token - Authentication token for authorized requests
  * @returns {Promise<Object>} - AI summary data
  */
 export const getAISummary = async (data, token) => {
   try {
     // Flag to determine if we should use the server API
-    // Change to true when you add the summary endpoint to your backend
     const useServerApi = true;
     
     if (useServerApi && token) {
-      // Future server-side implementation
       console.log('Fetching AI summary from server for:', data.context);
-      const response = await axios.post(`${API_URL}/coach/summary`, data, {
+      
+      // Before sending to API, ensure numeric values are properly formatted
+      const normalizedData = {
+        ...data,
+        userData: data.userData,
+        healthMetrics: {
+          ...data.healthMetrics,
+          bmi: data.healthMetrics.bmi ? parseFloat(data.healthMetrics.bmi) : null,
+          calorieTarget: data.healthMetrics.calorieTarget ? parseInt(data.healthMetrics.calorieTarget, 10) : null,
+        },
+        context: data.context
+      };
+      
+      const response = await axios.post(`${API_URL}/coach/summary`, normalizedData, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
+      console.log('AI summary response:', response.data);
       return response.data;
     } else {
-      // Client-side summary generation
+      // Fallback to client-side summary generation
       return generateClientSideSummary(data);
     }
   } catch (error) {
     console.error('Error getting AI summary:', error);
-    handleApiError(error, 'Failed to get AI summary');
+    return handleApiError(error, 'Failed to get AI summary');
   }
 };
 

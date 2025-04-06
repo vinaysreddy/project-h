@@ -3,11 +3,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, Sparkles, AlertCircle } from 'lucide-react';
 import { getAISummary } from '../../coach/services/coachService';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) => {
   const [summary, setSummary] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { getToken } = useAuth();
   
   // Get context-specific colors while keeping AI icon consistent
   const getContextVisuals = () => {
@@ -37,23 +39,40 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
 
   const { gradient, bgGradient } = getContextVisuals();
   
+  // Enhanced effect to fetch AI summary from backend
   useEffect(() => {
     const loadSummary = async () => {
       setIsLoading(true);
       setError(null);
       
       try {
-        // Validate healthMetrics before calling API
-        if (!healthMetrics || typeof healthMetrics !== 'object') {
-          throw new Error('Invalid health metrics data');
+        // Get authentication token for API call
+        const token = await getToken();
+        if (!token) {
+          throw new Error('Authentication required');
         }
         
+        // Make sure we have the required data
+        if (!userData || !userData.displayName) {
+          throw new Error('User profile not loaded');
+        }
+        
+        // Process sleep data if available on the sleep tab
+        const enhancedData = { ...userData };
+        if (activeTab === 'sleep' && userData.sleepData) {
+          enhancedData.sleepInsights = processSleepData(userData.sleepData);
+        }
+        
+        // Normalize health metrics to handle different data formats
+        const normalizedMetrics = normalizeHealthMetrics(healthMetrics);
+        
         // Get personalized AI summary based on current context
+        console.log(`Requesting AI summary for ${activeTab} tab`);
         const response = await getAISummary({
-          userData,
-          healthMetrics,
+          userData: enhancedData,
+          healthMetrics: normalizedMetrics,
           context: activeTab,
-        });
+        }, token);
         
         if (!response || !response.summary) {
           throw new Error('Invalid response from AI service');
@@ -63,7 +82,7 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
       } catch (error) {
         console.error('Error fetching AI summary:', error);
         setError(error.message || 'Failed to load AI summary');
-        setSummary(''); // Clear any previous summary
+        // Don't clear previous summary on error - just keep the last valid one
       } finally {
         setIsLoading(false);
       }
@@ -79,10 +98,49 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
     // Debounce to prevent too many API calls when switching tabs
     const timer = setTimeout(() => {
       loadSummary();
-    }, 300);
+    }, 500); // Slightly longer delay to avoid unnecessary API calls
     
     return () => clearTimeout(timer);
-  }, [userData, healthMetrics, activeTab]);
+  }, [userData, healthMetrics, activeTab, getToken]);
+  
+  // Process sleep data to generate meaningful insights
+  const processSleepData = (sleepData) => {
+    if (!sleepData || sleepData.length === 0) return "No sleep data available.";
+    
+    // Get the most recent 7 days of data
+    const recentData = sleepData.slice(-7);
+    
+    // Calculate averages
+    const avgSleepDuration = recentData.reduce((sum, night) => sum + (night.totalSleep || 0), 0) / recentData.length;
+    const avgDeepSleep = recentData.reduce((sum, night) => sum + (night.deepSleep || 0), 0) / recentData.length;
+    const deepSleepPercentage = avgSleepDuration > 0 ? (avgDeepSleep / avgSleepDuration) * 100 : 0;
+    
+    // Calculate sleep consistency (standard deviation of sleep durations)
+    const sleepDurations = recentData.map(night => night.totalSleep || 0);
+    const avg = sleepDurations.reduce((sum, val) => sum + val, 0) / sleepDurations.length;
+    const squareDiffs = sleepDurations.map(val => Math.pow(val - avg, 2));
+    const avgSquareDiff = squareDiffs.reduce((sum, val) => sum + val, 0) / squareDiffs.length;
+    const stdDev = Math.sqrt(avgSquareDiff);
+    
+    // Convert to a 0-10 consistency score (lower std deviation = higher consistency)
+    const consistency = Math.max(0, Math.min(10, 10 - (stdDev * 5)));
+    
+    return `Based on ${recentData.length} days of sleep data: You're averaging ${avgSleepDuration.toFixed(1)} hours of sleep per night with ${avgDeepSleep.toFixed(1)} hours of deep sleep (${deepSleepPercentage.toFixed(0)}% of total). Your sleep consistency score is ${consistency.toFixed(1)}/10. ${consistency > 7 ? 'Your sleep schedule is consistent, which is excellent for health.' : 'Your sleep schedule varies, which may impact overall health.'}`;
+  };
+  
+  // Normalize health metrics to handle different data formats
+  const normalizeHealthMetrics = (metrics) => {
+    if (!metrics) return {};
+    
+    return {
+      ...metrics,
+      bmi: metrics.bmi ? parseFloat(metrics.bmi) : null,
+      calorieTarget: metrics.calorieTarget ? parseInt(metrics.calorieTarget, 10) : null,
+      proteinTarget: metrics.proteinTarget ? parseInt(metrics.proteinTarget, 10) : null,
+      carbsTarget: metrics.carbsTarget ? parseInt(metrics.carbsTarget, 10) : null,
+      fatsTarget: metrics.fatsTarget ? parseInt(metrics.fatsTarget, 10) : null
+    };
+  };
 
   // Get fallback content if we have no data
   const getFallbackSummary = () => {
@@ -128,6 +186,19 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
               ) : (
                 <p className="text-gray-700 leading-relaxed">{summary || getFallbackSummary()}</p>
               )}
+            </div>
+            
+            {/* Chat button at the bottom right */}
+            <div className="flex justify-end mt-2">
+              <Button
+                onClick={onChatOpen}
+                variant="outline" 
+                size="sm"
+                className="text-xs flex items-center gap-1 border border-gray-200 hover:bg-gray-50"
+              >
+                <MessageSquare className="h-3 w-3" />
+                <span>Ask Oats</span>
+              </Button>
             </div>
           </div>
         </div>

@@ -228,6 +228,10 @@ router.post('/summary', authenticateUser, async (req, res) => {
     // Get user's most recent data from the request
     const { userData, healthMetrics } = req.body;
     
+    // Check for sleep data
+    const hasSleepData = userData?.sleepInsights && 
+                          userData.sleepInsights !== "No sleep data available.";
+    
     // Combine all the data
     const combinedUserData = {
       ...userDataFromDb,
@@ -246,16 +250,36 @@ router.post('/summary', authenticateUser, async (req, res) => {
     prompt += `Weight: ${combinedUserData.weight || 'unknown'}\n`;
     prompt += `Calorie Target: ${healthMetrics?.calorieTarget || 'unknown'}\n\n`;
     
+    // Add sleep data if available
+    if (hasSleepData) {
+      prompt += `IMPORTANT - Sleep Data: ${userData.sleepInsights}\n\n`;
+    }
+    
     // Add context-specific instructions
     if (context === 'nutrition') {
       prompt += `Focus on their nutrition needs and dietary recommendations for their ${healthMetrics?.bmiCategory || 'current'} BMI and ${combinedUserData.primaryGoal || 'health'} goals.`;
+      if (hasSleepData) {
+        prompt += ` Also consider how their sleep patterns might impact nutrition needs.`;
+      }
     } else if (context === 'fitness') {
       prompt += `Focus on their fitness needs and exercise recommendations for their ${healthMetrics?.bmiCategory || 'current'} BMI and ${combinedUserData.primaryGoal || 'health'} goals.`;
+      if (hasSleepData) {
+        prompt += ` Consider how their sleep quality might impact recovery and workout performance.`;
+      }
+    } else if (context === 'sleep') {
+      if (hasSleepData) {
+        prompt += `Focus on analyzing their sleep data and providing recommendations for improving sleep quality, duration, and consistency.`;
+      } else {
+        prompt += `Focus on general sleep recommendations based on their health profile and ${combinedUserData.primaryGoal || 'health'} goals.`;
+      }
     } else {
       prompt += `Provide a general health overview and recommendations based on their current metrics and goals.`;
+      if (hasSleepData) {
+        prompt += ` Include a brief mention of their sleep quality if relevant.`;
+      }
     }
     
-    prompt += `\n\nKeep the summary brief (2-3 sentences), personalized, and actionable. Start with "Hi [name]!"`;
+    prompt += `\n\nKeep the summary brief (3-4 sentences), personalized, and actionable. Start with "Hi [name]!" and include one emoji for a friendly touch.`;
     
     // Call OpenAI
     const response = await openai.chat.completions.create({
@@ -263,7 +287,7 @@ router.post('/summary', authenticateUser, async (req, res) => {
       messages: [
         {
           role: "system",
-          content: "You are a helpful AI health coach that provides personalized summaries based on user health data."
+          content: "You are a helpful AI health coach that provides personalized summaries based on user health data. Be friendly and motivational but focus on specific data points from the user's profile."
         },
         {
           role: "user",
