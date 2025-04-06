@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Moon, Flame, Activity, BarChart2, Calendar, BedDouble, Clock, Sun, Coffee } from 'lucide-react';
 import FileUploader from './components/FileUploader';
-import { calculateSleepQualityScore, generateSleepInsights } from './utils/sleepAnalytics';
+import { calculateSleepQualityScore, generateSleepInsights, formatHoursAndMinutes } from './utils/sleepAnalytics';
 
 // Icon mapping for easy lookup
 const iconMap = {
@@ -106,7 +106,7 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
               <BedDouble className="h-4 w-4 text-[#4D55CC]" />
             </div>
             <div className="text-2xl font-bold">
-              {sleepInsights?.averageSleepDuration.toFixed(1)} hrs
+              {formatHoursAndMinutes(sleepInsights?.averageSleepDuration)}
             </div>
             {sleepInsights?.averageSleepDurationTrend > 0 ? (
               <div className="text-xs text-green-600 mt-1">
@@ -142,7 +142,7 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
               <Activity className="h-4 w-4 text-[#4D55CC]" />
             </div>
             <div className="text-2xl font-bold">
-              {sleepInsights?.averageDeepSleep.toFixed(1)} hrs
+              {formatHoursAndMinutes(sleepInsights?.averageDeepSleep)}
             </div>
             <div className="text-xs text-gray-500 mt-1">
               {Math.round(sleepInsights?.deepSleepPercentage)}% of total sleep
@@ -208,7 +208,12 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
                       />
                       <YAxis name="Sleep (hrs)" domain={[0, 12]} />
                       <Tooltip
-                        formatter={(value) => [`${value.toFixed(1)} hrs`, 'Sleep']}
+                        formatter={(value, name) => {
+                          if (name === "Total Sleep") {
+                            return [formatHoursAndMinutes(value), name];
+                          }
+                          return [`${value.toFixed(1)}`, name];
+                        }}
                         labelFormatter={(date) => new Date(date).toLocaleDateString()}
                       />
                       <Legend />
@@ -282,7 +287,12 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
                         minTickGap={30}
                       />
                       <YAxis />
-                      <Tooltip />
+                      <Tooltip 
+                        formatter={(value, name) => {
+                          return [formatHoursAndMinutes(value), name];
+                        }}
+                        labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                      />
                       <Legend />
                       <Bar 
                         dataKey="deepSleep" 
@@ -327,7 +337,7 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Avg. per night</span>
-                    <span className="font-bold">{sleepInsights?.averageDeepSleep.toFixed(1)} hrs</span>
+                    <span className="font-bold">{formatHoursAndMinutes(sleepInsights?.averageDeepSleep)}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -343,7 +353,7 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Avg. per night</span>
-                    <span className="font-bold">{sleepInsights?.averageCoreSleep.toFixed(1)} hrs</span>
+                    <span className="font-bold">{formatHoursAndMinutes(sleepInsights?.averageCoreSleep)}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -359,7 +369,7 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Avg. per night</span>
-                    <span className="font-bold">{sleepInsights?.averageRemSleep.toFixed(1)} hrs</span>
+                    <span className="font-bold">{formatHoursAndMinutes(sleepInsights?.averageRemSleep)}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -395,7 +405,15 @@ const SleepAnalytics = ({ userData, healthMetrics, onDataProcessed }) => {
                       />
                       <YAxis yAxisId="left" orientation="left" stroke="#4D55CC" />
                       <YAxis yAxisId="right" orientation="right" stroke="#10B981" />
-                      <Tooltip />
+                      <Tooltip
+                        formatter={(value, name) => {
+                          if (name === "Sleep Duration (hrs)") {
+                            return [formatHoursAndMinutes(value), name];
+                          }
+                          return [`${value.toFixed(1)}`, name];
+                        }}
+                        labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                      />
                       <Legend />
                       <Line 
                         yAxisId="left"

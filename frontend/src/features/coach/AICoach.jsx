@@ -38,34 +38,58 @@ const AICoach = forwardRef(({ userData, healthMetrics, contextHint, hideHeader =
   const inputRef = useRef(null);
   const { getToken } = useAuth();
   
-  // Common suggested prompts that are always available
+  // Updated common suggested prompts that are more direct and engaging
   const commonPrompts = [
-    "What should I eat today based on my goals?",
-    "How can I improve my BMI?",
-    "Suggest a quick workout for me"
+    "How healthy am I?",
+    "How can I lose weight?", 
+    "What workout today?", 
+    "How did I sleep?"
   ];
   
-  // Context-specific prompts (not shown directly but used as a pool for rotation)
+  // Enhanced context-specific prompts that better align with user tabs
   const contextPrompts = {
     home: [
-      "How do my health metrics look?",
-      "What are realistic goals for me?",
-      "Tips to stay motivated"
+      "How healthy am I?",
+      "What should I focus on today?",
+      "Am I making progress?"
     ],
     nutrition: [
-      "Create a meal plan for my macros",
-      "How can I reduce sugar intake?",
-      "Foods to build muscle"
+      "What should I eat today?",
+      "How can I reduce sugar cravings?",
+      "Best foods for my goals?"
     ],
     fitness: [
-      "Design a workout for upper body",
-      "Best cardio exercises for me",
-      "Recovery tips after workouts"
+      "What workout today?",
+      "Best exercises for my body type?",
+      "How to recover faster?"
+    ],
+    sleep: [
+      "How did I sleep?",
+      "How to fall asleep faster?",
+      "Is my sleep pattern healthy?"
     ]
   };
   
-  // Use common prompts as default
-  const suggestedPrompts = commonPrompts;
+  // Dynamically select prompts based on context
+  const getSuggestedPrompts = () => {
+    // If we're in a specific context, mix 2 context-specific with 2 common prompts
+    if (contextHint && contextPrompts[contextHint]) {
+      // Get 2 random prompts from the context-specific list
+      const contextSpecificPrompts = [...contextPrompts[contextHint]].sort(() => 0.5 - Math.random()).slice(0, 2);
+      
+      // Get 2 common prompts that aren't in the context-specific selection
+      const filteredCommonPrompts = commonPrompts.filter(prompt => !contextSpecificPrompts.includes(prompt));
+      const selectedCommonPrompts = filteredCommonPrompts.sort(() => 0.5 - Math.random()).slice(0, 2);
+      
+      return [...contextSpecificPrompts, ...selectedCommonPrompts];
+    }
+    
+    // Default to common prompts
+    return commonPrompts;
+  };
+  
+  // Get suggested prompts based on context
+  const suggestedPrompts = getSuggestedPrompts();
   
   useEffect(() => {
     loadChatHistory();
@@ -411,25 +435,7 @@ const AICoach = forwardRef(({ userData, healthMetrics, contextHint, hideHeader =
         </div>
       </CardContent>
       
-      {/* Always visible suggested prompts */}
-      <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-        <p className="text-xs text-gray-500 mb-2">Quick questions:</p>
-        <div className="flex flex-wrap gap-2">
-          {suggestedPrompts.map((prompt, index) => (
-            <Button
-              key={index}
-              variant="outline"
-              size="sm"
-              className="text-xs py-1 px-2 h-auto border-gray-200 bg-white hover:bg-gray-50 rounded-full"
-              onClick={() => handleSendMessage(prompt)}
-            >
-              {prompt}
-            </Button>
-          ))}
-        </div>
-      </div>
-      
-      <CardFooter className="border-t p-3">
+      <CardFooter className="border-t p-3 flex flex-col gap-2">
         {error && (
           <div className="absolute -top-8 left-0 right-0 bg-red-50 border-y border-red-200 p-1.5 text-center">
             <p className="text-red-600 text-xs flex items-center justify-center">
@@ -453,6 +459,45 @@ const AICoach = forwardRef(({ userData, healthMetrics, contextHint, hideHeader =
             </p>
           </div>
         )}
+        
+        {/* Input form with quick questions directly above in single row */}
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs py-1 px-2.5 h-auto border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-[#4D55CC] rounded-full"
+            onClick={() => handleSendMessage("How healthy am I?")}
+          >
+            How healthy am I?
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs py-1 px-2.5 h-auto border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-[#4D55CC] rounded-full"
+            onClick={() => handleSendMessage("What workout today?")}
+          >
+            What workout today?
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs py-1 px-2.5 h-auto border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-[#4D55CC] rounded-full"
+            onClick={() => handleSendMessage("How can I lose weight?")}
+          >
+            How can I lose weight?
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs py-1 px-2.5 h-auto border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-[#4D55CC] rounded-full"
+            onClick={() => handleSendMessage("How did I sleep?")}
+          >
+            How did I sleep?
+          </Button>
+        </div>
         
         <form 
           className="w-full flex items-center gap-2" 

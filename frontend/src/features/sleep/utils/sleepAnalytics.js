@@ -1,5 +1,24 @@
 import { Moon, Clock, BedDouble, Activity, Sun, Coffee, Flame } from 'lucide-react';
 
+/**
+ * Formats decimal hours into "X hrs Y min" format
+ * @param {number} hours - Decimal hours (e.g., 7.5)
+ * @return {string} Formatted string (e.g., "7 hrs 30 min")
+ */
+export const formatHoursAndMinutes = (hours) => {
+  if (hours === undefined || hours === null || isNaN(hours)) return "0 hrs 0 min";
+  
+  const hrs = Math.floor(hours);
+  const mins = Math.round((hours - hrs) * 60);
+  
+  // Handle edge case where minutes round up to 60
+  if (mins === 60) {
+    return `${hrs + 1} hrs 0 min`;
+  }
+  
+  return `${hrs} hrs ${mins} min`;
+};
+
 export const calculateSleepQualityScore = (sleepData) => {
   if (!sleepData || sleepData.length === 0) return 0;
   
