@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,12 +23,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { sendChatMessage, getChatHistory } from './services/coachService';
 import * as calculations from '@/utils/healthMetricsCalculator';
 
-const AICoach = ({ userData, healthMetrics, contextHint, hideHeader = true, fixedHeight = false }) => {
+const AICoach = forwardRef(({ userData, healthMetrics, contextHint, hideHeader = true, fixedHeight = false }, ref) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  // Add state for context data
+  const [contextData, setContextData] = useState({});
+  // Add state for enhanced context that will be sent to the AI
+  const [enhancedContext, setEnhancedContext] = useState({});
+  
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const { getToken } = useAuth();
@@ -76,6 +81,33 @@ const AICoach = ({ userData, healthMetrics, contextHint, hideHeader = true, fixe
       setTimeout(() => inputRef.current.focus(), 300);
     }
   }, [hideHeader]);
+
+  // Add method to update context data (for use by parent components)
+  const updateContext = (newContextData) => {
+    setContextData(prevContext => ({
+      ...prevContext,
+      ...newContextData
+    }));
+  };
+
+  // Process sleep data when it changes
+  useEffect(() => {
+    if (contextData.sleepData && contextData.sleepData.length > 0) {
+      try {
+        const recentSleepMetrics = processRecentSleepData(contextData.sleepData);
+        if (recentSleepMetrics) {
+          const sleepSummary = `Recent sleep data: Average ${recentSleepMetrics.avgSleepDuration.toFixed(1)} hours per night, ${recentSleepMetrics.avgDeepSleep.toFixed(1)} hours of deep sleep (${recentSleepMetrics.deepSleepPercentage.toFixed(0)}% of total sleep), sleep consistency score: ${recentSleepMetrics.consistency}/10.`;
+          
+          setEnhancedContext(prev => ({
+            ...prev,
+            sleepInsights: sleepSummary
+          }));
+        }
+      } catch (err) {
+        console.error("Error processing sleep data:", err);
+      }
+    }
+  }, [contextData.sleepData]);
 
   const loadChatHistory = async () => {
     try {
@@ -141,7 +173,9 @@ const AICoach = ({ userData, healthMetrics, contextHint, hideHeader = true, fixe
           bmiCategory: healthMetrics?.bmiCategory ||
             (userData?.bmi ? calculations.getBMICategory(userData?.bmi).category : 
             calculations.getBMICategory(calculations.calculateBMI(userData?.height, userData?.weight, 'cm', 'kg')).category)
-        }
+        },
+        // Include enhanced context with sleep data
+        ...enhancedContext
       };
       
       const response = await sendChatMessage({
@@ -188,8 +222,77 @@ const AICoach = ({ userData, healthMetrics, contextHint, hideHeader = true, fixe
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const processRecentSleepData = (sleepData) => {
+    if (!sleepData || !sleepData.length) return null;
+    
+    // Only use the last 7 days of data if available
+    const recentData = sleepData.slice(-7);
+    
+    const avgSleepDuration = recentData.reduce((sum, night) => sum + (night.totalSleep || 0), 0) / recentData.length;
+    const avgDeepSleep = recentData.reduce((sum, night) => sum + (night.deepSleep || 0), 0) / recentData.length;
+    const deepSleepPercentage = avgSleepDuration > 0 ? (avgDeepSleep / avgSleepDuration) * 100 : 0;
+    
+    // Calculate sleep consistency (standard deviation of sleep duration)
+    const sleepDurations = recentData.map(night => night.totalSleep || 0);
+    const avg = sleepDurations.reduce((sum, val) => sum + val, 0) / sleepDurations.length;
+    const squareDiffs = sleepDurations.map(val => Math.pow(val - avg, 2));
+    const avgSquareDiff = squareDiffs.reduce((sum, val) => sum + val, 0) / squareDiffs.length;
+    const stdDev = Math.sqrt(avgSquareDiff);
+    
+    // Convert to a 0-10 consistency score (lower std deviation = higher consistency)
+    const consistency = Math.max(0, Math.min(10, 10 - (stdDev * 5)));
+    
+    return {
+      avgSleepDuration,
+      avgDeepSleep,
+      deepSleepPercentage,
+      consistency: Math.round(consistency)
+    };
+  };
+
+  // Add this new method to handle forced context refresh
+  const refreshContext = () => {
+    if (contextData.sleepData && contextData.sleepData.length > 0) {
+      try {
+        console.log("Refreshing sleep context in AI Coach...");
+        const recentSleepMetrics = processRecentSleepData(contextData.sleepData);
+        if (recentSleepMetrics) {
+          const sleepSummary = `Recent sleep data analysis: Average ${recentSleepMetrics.avgSleepDuration.toFixed(1)} hours per night over the last ${Math.min(contextData.sleepData.length, 7)} days. Sleep quality metrics: Deep sleep ${recentSleepMetrics.avgDeepSleep.toFixed(1)} hours (${recentSleepMetrics.deepSleepPercentage.toFixed(0)}% of total sleep), sleep consistency score: ${recentSleepMetrics.consistency}/10. Your recent sleep patterns suggest ${recentSleepMetrics.consistency > 7 ? 'good consistency' : 'room for improvement in sleep schedule consistency'}.`;
+          
+          // Update enhanced context with more detailed sleep insights
+          setEnhancedContext(prev => ({
+            ...prev,
+            sleepInsights: sleepSummary
+          }));
+          
+          // Add a message from the coach acknowledging the new sleep data
+          setMessages(prev => [...prev, {
+            id: 'sleep-data-' + Date.now(),
+            role: 'assistant',
+            content: `I notice you've uploaded your sleep data. I'll take this into account when providing recommendations. Feel free to ask me any questions about your sleep patterns or how they relate to your ${userData.primaryGoal || 'health'} goals.`,
+            timestamp: new Date()
+          }]);
+        }
+      } catch (err) {
+        console.error("Error refreshing sleep context:", err);
+      }
+    }
+  };
+  
+  // Expose updateContext method for parent components
+  useImperativeHandle(ref, () => ({
+    updateContext: (newContextData) => {
+      setContextData(prevContext => ({
+        ...prevContext,
+        ...newContextData
+      }));
+    },
+    refreshContext
+  }));
+  
   return (
     <Card className="flex flex-col shadow-lg border-gray-200">
+      {/* Rest of your component remains the same */}
       {!hideHeader && (
         <div className="bg-gradient-to-r from-[#4D55CC]/90 to-[#4D55CC] text-white p-4 flex items-center justify-between rounded-t-lg">
           <div className="flex items-center">
@@ -377,6 +480,6 @@ const AICoach = ({ userData, healthMetrics, contextHint, hideHeader = true, fixe
       </CardFooter>
     </Card>
   );
-};
+});
 
 export default AICoach;

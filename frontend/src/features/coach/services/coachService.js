@@ -89,14 +89,26 @@ const generateClientSideSummary = async (data) => {
   // Extract relevant user information with fallbacks
   const firstName = userData?.displayName?.split(' ')[0] || 'there';
   
-  // Ensure BMI is a number before using toFixed
-  const bmiValue = healthMetrics?.bmi;
-  const bmiFormatted = typeof bmiValue === 'number' ? bmiValue.toFixed(1) : 'unknown';
+  // Proper handling of BMI value that might come as a string
+  const bmiValue = healthMetrics?.bmi 
+    ? parseFloat(healthMetrics.bmi) 
+    : (userData?.bmi ? parseFloat(userData.bmi) : null);
   
-  const bmiCategory = healthMetrics?.bmiCategory || 'unknown';
-  const weight = userData?.weight || 0;
+  // Format BMI only if it's a valid number
+  const bmiFormatted = !isNaN(bmiValue) && bmiValue !== null 
+    ? bmiValue.toFixed(1) 
+    : 'unknown';
+  
+  // Properly handle other metrics that might be strings
+  const bmiCategory = healthMetrics?.bmiCategory || userData?.bmiCategory || 'unknown';
+  const weight = userData?.weight ? parseFloat(userData.weight) : 0;
   const weightUnit = userData?.weightUnit || 'kg';
-  const calorieTarget = healthMetrics?.calorieTarget || 2000;
+  
+  // Parse calorie target which might come as a string
+  const calorieTarget = healthMetrics?.calorieTarget 
+    ? parseInt(healthMetrics.calorieTarget, 10) 
+    : 2000;
+  
   const primaryGoal = userData?.primaryGoal || 'overall health';
   
   // Convert goal to user-friendly format
@@ -132,6 +144,10 @@ const generateClientSideSummary = async (data) => {
       } else {
         summary = `Hi ${firstName}! With your healthy BMI of ${bmiFormatted}, you can focus on ${friendlyGoal} with a balanced workout routine. Mix cardio, strength training, and flexibility work to maintain your health and improve fitness levels.`;
       }
+      break;
+    
+    case 'sleep':
+      summary = `Hi ${firstName}! Quality sleep is crucial for your ${friendlyGoal} goals. Consider tracking your sleep patterns to ensure you're getting 7-9 hours of restorative sleep each night. Good sleep improves recovery, helps manage weight, and optimizes your overall health.`;
       break;
       
     default: // home tab

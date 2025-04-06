@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Add useRef import
 import * as calculations from '@/utils/healthMetricsCalculator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,8 @@ import {
   AlertCircle,
   Bell,
   BarChart2,
-  Sparkles
+  Sparkles,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -25,6 +26,7 @@ import DynamicAISummary from './components/DynamicAISummary';
 import AICoach from '../coach/AICoach';
 import NutritionCard from '../nutrition/NutritionCard'; 
 import WorkoutCard from '../workout/WorkoutCard';
+import SleepAnalytics from '../sleep/SleepAnalytics';
 
 /**
  * Main Dashboard Component
@@ -40,6 +42,9 @@ const Dashboard = () => {
     fetchOnboardingData, 
     logout 
   } = useAuth();
+  
+  // Create a ref for the AICoach component
+  const aiCoachRef = useRef(null);
   
   // Component state
   const [activeTab, setActiveTab] = useState('home');
@@ -191,6 +196,31 @@ const Dashboard = () => {
   };
 
   /**
+   * Handle sleep data processing
+   */
+  const handleSleepDataProcessed = (sleepData) => {
+    if (sleepData && sleepData.length > 0 && aiCoachRef.current) {
+      console.log("Sleep data processed, updating AI Coach context...", sleepData.length);
+      
+      // Calculate recent sleep metrics for summary
+      const recentData = sleepData.slice(-7); // Get last week
+      
+      // Process the data and update coach context
+      aiCoachRef.current.updateContext({ 
+        sleepData: sleepData,
+        sleepSummaryForDisplay: `${recentData.length} days of sleep data analyzed`
+      });
+      
+      // Force a context refresh on the coach
+      setTimeout(() => {
+        if (aiCoachRef.current) {
+          aiCoachRef.current.refreshContext();
+        }
+      }, 1000);
+    }
+  };
+
+  /**
    * Render error state when something goes wrong
    */
   if (error && !isLoading) {
@@ -316,6 +346,13 @@ const Dashboard = () => {
                 <Activity className="h-4 w-4 mr-2" />
                 <span>Fitness</span>
               </TabsTrigger>
+              <TabsTrigger 
+                value="sleep" 
+                className="rounded-lg px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#4D55CC] transition-all"
+              >
+                <Moon className="h-4 w-4 mr-2" />
+                <span>Sleep</span>
+              </TabsTrigger>
             </TabsList>
           </div>
           
@@ -355,6 +392,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                     <AICoach 
+                      ref={aiCoachRef}
                       userData={userData || {}} 
                       healthMetrics={healthMetrics}
                       contextHint={activeTab}
@@ -453,6 +491,19 @@ const Dashboard = () => {
                     <WorkoutCard
                       userData={userData || {}}
                       healthMetrics={healthMetrics}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Sleep Tab */}
+              <TabsContent value="sleep" className="mt-0">
+                <Card className="rounded-2xl shadow-md border-0 bg-white">
+                  <CardContent className="p-6">
+                    <SleepAnalytics 
+                      userData={userData || {}}
+                      healthMetrics={healthMetrics}
+                      onDataProcessed={handleSleepDataProcessed}
                     />
                   </CardContent>
                 </Card>

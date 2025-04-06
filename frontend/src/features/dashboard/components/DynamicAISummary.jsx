@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Sparkles, AlertCircle, Leaf, Zap, Sprout } from 'lucide-react';
+import { MessageSquare, Sparkles, AlertCircle } from 'lucide-react';
 import { getAISummary } from '../../coach/services/coachService';
 
 const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) => {
@@ -9,31 +9,33 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Get context-specific icon and colors
+  // Get context-specific colors while keeping AI icon consistent
   const getContextVisuals = () => {
     switch(activeTab) {
       case 'nutrition':
         return {
-          icon: <Leaf className="h-6 w-6" />,
-          gradient: "from-[#3E7B27]/90 to-[#70C04F]/90",
+          gradient: "from-[#3E7B27] to-[#70C04F]",
           bgGradient: "from-[#3E7B27]/5 to-[#70C04F]/5"
         };
       case 'fitness':
         return {
-          icon: <Zap className="h-6 w-6" />,
-          gradient: "from-[#e72208]/90 to-[#FF6B4A]/90",
+          gradient: "from-[#e72208] to-[#FF6B4A]",
           bgGradient: "from-[#e72208]/5 to-[#FF6B4A]/5"
+        };
+      case 'sleep':
+        return {
+          gradient: "from-[#4D55CC] to-[#8662E3]",
+          bgGradient: "from-[#4D55CC]/5 to-[#8662E3]/5"
         };
       default:
         return {
-          icon: <Sprout className="h-6 w-6" />,
-          gradient: "from-[#4D55CC]/90 to-[#818CF8]/90",
-          bgGradient: "from-[#4D55CC]/5 to-[#818CF8]/5"
+          gradient: "from-[#4D55CC] to-[#3E7B27]",
+          bgGradient: "from-[#4D55CC]/5 to-[#3E7B27]/5"
         };
     }
   };
 
-  const { icon, gradient, bgGradient } = getContextVisuals();
+  const { gradient, bgGradient } = getContextVisuals();
   
   useEffect(() => {
     const loadSummary = async () => {
@@ -92,9 +94,9 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
     <Card className={`overflow-hidden border-none rounded-2xl shadow-md mb-6 bg-gradient-to-r ${bgGradient}`}>
       <CardContent className="p-5 md:p-6">
         <div className="flex items-center gap-4">
-          {/* Unique visual oats-themed icon */}
-          <div className={`flex-shrink-0 p-3 rounded-xl bg-gradient-to-br ${gradient} shadow-lg text-white transform rotate-3`}>
-            {icon}
+          {/* Consistent AI-themed icon with dynamic gradient */}
+          <div className={`flex-shrink-0 bg-gradient-to-br ${gradient} p-3 rounded-xl text-white shadow-lg transform rotate-3`}>
+            <Sparkles className="h-5 w-5" />
           </div>
           
           <div className="flex-1">
@@ -103,7 +105,7 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
               <div className="bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full flex items-center shadow-sm">
                 <Sparkles className="inline h-3 w-3 mr-1 text-amber-500" />
                 <span className="text-xs font-medium bg-gradient-to-r from-indigo-600 to-purple-600 inline-block text-transparent bg-clip-text">
-                Your Personalized AI Health &amp; Fitness Coach
+                  Your Personalized AI Health &amp; Fitness Coach
                 </span>
               </div>
             </div>

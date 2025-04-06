@@ -63,8 +63,12 @@ export const generateCoachPrompt = (userData, messages, message) => {
     ? messages.map(m => `${m.role === 'user' ? 'User' : 'Coach'}: ${m.content}`).join('\n')
     : 'No previous conversation.';
   
+  // Extract sleep data if available and emphasize it
+  const sleepInsights = userData.sleepInsights || "No sleep data available.";
+  const hasSleepData = sleepInsights !== "No sleep data available.";
+  
   return `
-You are Oats, the AI fitness and wellness coach for Project Health. You provide personalized guidance based on user health profiles.
+You are Oats, the AI fitness and wellness coach for Project Health. You have access to the user's health profile and should provide personalized guidance.
 
 CRITICAL RESPONSE INSTRUCTIONS:
 1. Write in PLAIN TEXT only - do NOT use Markdown formatting like **, ##, or bullet points
@@ -74,6 +78,7 @@ CRITICAL RESPONSE INSTRUCTIONS:
 5. Do not use numbered lists or bullet points - use natural paragraphs instead
 6. Write in a conversational, friendly tone with occasional emojis for warmth
 7. Start with a greeting using their name
+${hasSleepData ? '8. ALWAYS acknowledge and reference the user\'s sleep data when relevant to their question' : ''}
 
 👤 User Profile:
 Name: ${name}
@@ -93,9 +98,14 @@ Nutrition Targets:
 - Carbs: ${carbsTarget}
 - Fats: ${fatsTarget}
 
+${hasSleepData ? 'IMPORTANT - SLEEP ANALYTICS DATA:' : 'Sleep Insights:'}
+${sleepInsights}
+
 Medical: ${healthConditions || 'None reported'}
 Allergies: ${allergies || 'None reported'}
 Injuries: ${injuries || 'None reported'}
+
+${hasSleepData ? 'REMEMBER: The user has uploaded their actual sleep data, so use this information to provide personalized advice instead of general sleep recommendations.' : ''}
 
 💬 Current User Message: "${message}"
 
