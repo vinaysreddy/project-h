@@ -106,112 +106,105 @@ const LandingPage = ({ onGetStarted, onLogin }) => {
         
         {/* AI Chat Feature Highlight - Updated to show mockup conversation */}
         <section className="py-10 px-4 md:px-16 relative mb-10">
-          <div className="max-w-5xl mx-auto">
-            <div className={`bg-white border border-gray-100 shadow-xl rounded-2xl p-6 md:p-8 transition-all duration-700 ${
-              animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
-            }`}>
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <div className="md:w-1/2 mb-6 md:mb-0">
-                  <div className="flex items-center mb-3">
-                    <div className="h-10 w-10 bg-[#4D55CC] rounded-full flex items-center justify-center mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M12 16v-4M12 8h.01"></path>
-                        <path d="M16 12h-4"></path>
-                      </svg>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900">AI Health Assistant</h2>
-                    <span className="ml-2 py-1 px-2 bg-[#4D55CC]/10 text-[#4D55CC] text-xs font-medium rounded-md">NEW</span>
-                  </div>
-                  <p className="text-gray-600 mb-6">Our advanced AI coach provides personalized health advice, fitness plans, and nutrition guidance based on your specific needs and goals.</p>
-                  <div className="flex flex-wrap gap-3 mb-6">
-                    <span className="px-3 py-1 bg-[#4D55CC]/10 text-[#4D55CC] text-xs font-medium rounded-full">24/7 Available</span>
-                    <span className="px-3 py-1 bg-[#4D55CC]/10 text-[#4D55CC] text-xs font-medium rounded-full">Personalized Advice</span>
-                    <span className="px-3 py-1 bg-[#4D55CC]/10 text-[#4D55CC] text-xs font-medium rounded-full">Smart Insights</span>
-                  </div>
-                  <button onClick={onGetStarted} className="inline-flex items-center bg-[#4D55CC] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#3c42a1] transition-all">
-                    Get Access
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="md:w-1/2 bg-gray-50 rounded-xl p-4 md:p-6 border border-gray-100 relative overflow-hidden">
-                  {/* AI Chat conversation mockup */}
-                  <div className="flex flex-col h-64 overflow-hidden">
-                    {/* Chat header */}
-                    <div className="flex items-center mb-4">
-                      <div className="h-8 w-8 bg-[#4D55CC] rounded-full flex items-center justify-center mr-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 005 10a6 6 0 0012 0c0-.352-.035-.696-.1-1.028A5 5 0 0010 11z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <span className="font-medium text-gray-700">AI Coach</span>
-                    </div>
-                    
-                    {/* Chat messages - animated */}
-                    <div className="flex-1 space-y-3 overflow-hidden">
-                      {/* AI message */}
-                      <div className={`bg-[#4D55CC]/10 text-gray-700 p-3 rounded-lg rounded-tl-none max-w-[85%] transition-all duration-700 ${
-                        animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
-                      }`}>
-                        Hi there! I'm your AI health and fitness coach. How can I help you today?
-                      </div>
-                      
-                      {/* User message */}
-                      <div className={`bg-gray-200 text-gray-800 p-3 rounded-lg rounded-tr-none max-w-[85%] ml-auto transition-all duration-700 delay-300 ${
-                        animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
-                      }`}>
-                        I want to lose 10 pounds and improve my energy levels. Where should I start?
-                      </div>
-                      
-                      {/* AI response */}
-                      <div className={`bg-[#4D55CC]/10 text-gray-700 p-3 rounded-lg rounded-tl-none max-w-[85%] transition-all duration-700 delay-600 ${
-                        animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
-                      }`}>
-                        Based on your goal, I recommend starting with:
-                        <br />
-                        1. A balanced nutrition plan with a moderate calorie deficit
-                        <br />
-                        2. 3-4 weekly workouts combining cardio and strength training
-                        <br />
-                        3. Prioritizing 7-8 hours of quality sleep
-                        <br />
-                        Would you like me to create a custom plan for you?
-                      </div>
-                      
-                      {/* User response */}
-                      <div className={`bg-gray-200 text-gray-800 p-3 rounded-lg rounded-tr-none max-w-[85%] ml-auto transition-all duration-700 delay-900 ${
-                        animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
-                      }`}>
-                        Yes, that sounds great! Can you customize it for my busy schedule?
-                      </div>
-                      
-                      {/* AI typing indicator */}
-                      <div className={`bg-[#4D55CC]/10 text-gray-700 p-3 rounded-lg rounded-tl-none max-w-[85%] transition-all duration-700 delay-1200 flex items-center space-x-2 w-20 ${
-                        animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
-                      }`}>
-                        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
-                      </div>
-                    </div>
-                    
-                    {/* Preview overlay with signup prompt */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-gray-50/70 to-transparent flex flex-col items-center justify-end pb-6">
-                      <button onClick={onGetStarted} className="bg-[#4D55CC] text-white px-6 py-2 rounded-md font-medium hover:bg-[#3c42a1] transition-all flex items-center shadow-md">
-                        Sign Up to Chat with Your Coach
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+  <div className="max-w-5xl mx-auto">
+    <div className={`bg-white border border-gray-100 shadow-xl rounded-2xl p-6 md:p-8 transition-all duration-700 ${
+      animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
+    }`}>
+      <div className="flex flex-col md:flex-row items-center gap-8">
+        <div className="md:w-1/2 mb-6 md:mb-0">
+          <div className="flex flex-wrap items-center mb-4">
+            <div className="bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] p-2.5 rounded-lg mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mr-2">Meet Oats</h2>
+            <div className="bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] bg-clip-text text-transparent font-bold text-lg">
+              Your AI Coach
+            </div>
+            <span className="ml-2 py-1 px-2 bg-[#4D55CC]/10 text-[#4D55CC] text-xs font-medium rounded-md">NEW</span>
+          </div>
+          <p className="text-gray-600 mb-6">Oats is your personal AI health & fitness coach that provides tailored advice, customized workout routines, and nutrition guidance specific to your unique body and goals.</p>
+        </div>
+        <div className="md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-50 rounded-xl p-4 md:p-6 border border-gray-100 relative overflow-hidden">
+          {/* AI Chat conversation mockup */}
+          <div className="flex flex-col h-64 overflow-hidden">
+            {/* Chat header */}
+            <div className="flex items-center mb-4">
+              <div className="h-10 w-10 bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] rounded-full flex items-center justify-center mr-3 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                </svg>
+              </div>
+              <div>
+                <span className="font-semibold text-gray-800">Oats</span>
+                <div className="text-xs text-gray-500">Your AI Health & Fitness Coach</div>
               </div>
             </div>
+            
+            {/* Chat messages - animated */}
+            <div className="flex-1 space-y-3 overflow-hidden">
+              {/* AI message */}
+              <div className={`bg-gradient-to-r from-[#4D55CC]/10 to-[#3E7B27]/10 text-gray-700 p-3 rounded-lg rounded-tl-none max-w-[85%] transition-all duration-700 ${
+                animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
+              }`}>
+                Hi there! I'm Oats, your personal health & fitness coach. How can I help you achieve your goals today?
+              </div>
+              
+              {/* User message */}
+              <div className={`bg-gray-200 text-gray-800 p-3 rounded-lg rounded-tr-none max-w-[85%] ml-auto transition-all duration-700 delay-300 ${
+                animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
+              }`}>
+                I'm trying to gain muscle while maintaining my current weight. Any advice?
+              </div>
+              
+              {/* AI response */}
+              <div className={`bg-gradient-to-r from-[#4D55CC]/10 to-[#3E7B27]/10 text-gray-700 p-3 rounded-lg rounded-tl-none max-w-[85%] transition-all duration-700 delay-600 ${
+                animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
+              }`}>
+                Absolutely! For muscle gain while maintaining weight, you'll need:
+                <br />
+                1. Progressive resistance training 3-4x weekly
+                <br />
+                2. Protein intake of 1.6-2.2g per kg of bodyweight
+                <br />
+                3. Maintenance calories with proper nutrient timing
+                <br />
+                Would you like a personalized plan?
+              </div>
+              
+              {/* User response */}
+              <div className={`bg-gray-200 text-gray-800 p-3 rounded-lg rounded-tr-none max-w-[85%] ml-auto transition-all duration-700 delay-900 ${
+                animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
+              }`}>
+                That would be great! Can you create a split routine and suggest protein-rich meals?
+              </div>
+              
+              {/* AI typing indicator */}
+              <div className={`bg-gradient-to-r from-[#4D55CC]/10 to-[#3E7B27]/10 text-gray-700 p-3 rounded-lg rounded-tl-none max-w-[85%] transition-all duration-700 delay-1200 flex items-center space-x-2 w-20 ${
+                animate ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4'
+              }`}>
+                <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+              </div>
+            </div>
+            
+            {/* Preview overlay with signup prompt */}
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent flex flex-col items-center justify-end pb-6">
+              <button onClick={onGetStarted} className="bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-lg transition-all flex items-center">
+                Start Chatting with Oats
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
           </div>
-        </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
       </div>
       
       {/* Core Features Section */}

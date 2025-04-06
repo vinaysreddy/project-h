@@ -7,7 +7,7 @@ Contains helper functions for workout data formatting */
  * @returns {Object} - Transformed workout plan data
  */
 export const transformWorkoutPlanData = (planData) => {
-  console.log("Transforming plan data:", planData);
+  
   
   // If the entire plan is a string (markdown format from backend)
   if (typeof planData === 'string' || (planData.workout_plan && typeof planData.workout_plan === 'string')) {
@@ -83,7 +83,7 @@ export const transformWorkoutPlanData = (planData) => {
                        "Progress by increasing weight or reps when exercises become easier."
     };
     
-    console.log("Transformed workout plan:", transformed);
+    
     return transformed;
   } catch (error) {
     console.error("Error transforming workout plan data:", error, planData);
@@ -98,7 +98,7 @@ export const transformWorkoutPlanData = (planData) => {
  */
 function parseMarkdownWorkoutPlan(markdown) {
   try {
-    console.log("Parsing markdown workout plan");
+    
     const days = [];
     let progressionNotes = "";
     
@@ -211,7 +211,7 @@ function parseMarkdownWorkoutPlan(markdown) {
       return dayNumA - dayNumB;
     });
     
-    console.log("Successfully parsed markdown workout plan", {days, progressionNotes});
+    
     
     return {
       days,

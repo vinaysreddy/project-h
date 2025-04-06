@@ -26,15 +26,11 @@ export function AuthProvider({ children }) {
 
   // Helper function to get token
   async function getToken(forceRefresh = false) {
-    console.log("🔑 Getting authentication token...");
     if (!currentUser) {
-      console.log("❌ No current user found, cannot get token");
       return null;
     }
     try {
       const token = await currentUser.getIdToken(forceRefresh);
-      // Print the full token string directly:
-      console.log("Full token:", token);
       return token;
     } catch (error) {
       console.error("❌ Error getting token:", error);
@@ -44,18 +40,11 @@ export function AuthProvider({ children }) {
 
   // Sign in with Google and register with backend
   async function signInWithGoogle() {
-    console.log("🔄 Starting Google authentication process...");
     try {
       const provider = googleProvider;
-      console.log("🔄 Opening Google sign-in popup...");
       const result = await signInWithPopup(auth, provider);
-      console.log("✅ Google authentication successful:", result.user.email);
-      
       const token = await result.user.getIdToken();
-      console.log("Full Google auth token:", token);
       const uid = result.user.uid;
-      console.log("🔑 User ID:", uid);
-      console.log("🔄 Registering user with backend...");
       
       // Register with backend
       const backendResponse = await axios.post(`${API_URL}/auth/signup`, {
@@ -67,7 +56,6 @@ export function AuthProvider({ children }) {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      console.log("✅ Backend registration successful", backendResponse.data);
       return { token, user: result.user };
     } catch (error) {
       console.error("❌ Authentication error:", error);
@@ -79,15 +67,12 @@ export function AuthProvider({ children }) {
   // Sign up with email and password
   const signUpWithEmail = async (email, password) => {
     try {
-      console.log("🔄 Starting email signup process...");
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      console.log("✅ Email signup successful:", result.user.email);
       
       // Similar to Google auth, register with backend
       const token = await result.user.getIdToken();
       const uid = result.user.uid;
-      
-      console.log("🔄 Registering user with backend...");
+
       const backendResponse = await axios.post(`${API_URL}/auth/signup`, {
         email: result.user.email,
         name: result.user.email.split('@')[0], // Use email prefix as name
@@ -98,7 +83,6 @@ export function AuthProvider({ children }) {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      console.log("✅ Backend registration successful", backendResponse.data);
       return result;
     } catch (error) {
       console.error("Error signing up with email:", error);
@@ -109,9 +93,7 @@ export function AuthProvider({ children }) {
   // Sign in with email and password
   const signInWithEmail = async (email, password) => {
     try {
-      console.log("🔄 Starting email authentication process...");
       const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log("✅ Email authentication successful:", result.user.email);
       setCurrentUser(result.user);
       return result;
     } catch (error) {
@@ -139,14 +121,10 @@ export function AuthProvider({ children }) {
   const signInWithFacebook = async () => {
     try {
       // Use the pre-created facebookProvider from your firebase.js file
-      console.log("🔄 Starting Facebook authentication process...");
       const result = await signInWithPopup(auth, facebookProvider);
-      console.log("✅ Facebook authentication successful:", result.user.email);
       
       const token = await result.user.getIdToken();
       const uid = result.user.uid;
-      console.log("🔑 User ID:", uid);
-      console.log("🔄 Registering user with backend...");
       
       // Register with backend
       const backendResponse = await axios.post(`${API_URL}/auth/signup`, {
@@ -158,8 +136,6 @@ export function AuthProvider({ children }) {
       }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
-      console.log("✅ Backend registration successful", backendResponse.data);
       return { token, user: result.user };
     } catch (error) {
       console.error("❌ Error signing in with Facebook:", error);
@@ -169,22 +145,17 @@ export function AuthProvider({ children }) {
 
   // Fetch user data from backend
   async function fetchUserData() {
-    console.log("🔄 Fetching user profile data from backend...");
+
     try {
       const token = await getToken();
       if (!token || !currentUser) {
-        console.log("❌ Cannot fetch user data: Missing token or user");
         return null;
       }
-      
-      console.log(`🔄 GET request to: ${API_URL}/auth/user`);
-      console.log(`🔄 Auth header: Bearer ${token.substring(0, 15)}...`);
-      
+
       const response = await axios.get(`${API_URL}/auth/user`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
-      console.log("✅ User data fetched successfully:", response.data);
+
       setUserProfile(response.data);
       return response.data;
     } catch (error) {
@@ -200,20 +171,16 @@ export function AuthProvider({ children }) {
   // Add this version of fetchOnboardingData that accepts a token parameter:
 
   async function fetchOnboardingData(directToken = null) {
-    console.log("🔄 Fetching onboarding data from backend...");
     try {
       const token = directToken || await getToken();
       if (!token) {
-        console.log("❌ Cannot fetch onboarding data: Missing token");
         return null;
       }
       
-      console.log(`🔄 GET request to: ${API_URL}/onboarding`);
       const response = await axios.get(`${API_URL}/onboarding`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      console.log("✅ Onboarding data fetched successfully:", response.data);
       if (!directToken) {
         // Only update state if this is part of normal flow
         setOnboardingData(response.data.data);
@@ -222,7 +189,6 @@ export function AuthProvider({ children }) {
     } catch (error) {
       // Don't treat 404 as an error for new users
       if (error.response && error.response.status === 404) {
-        console.log("ℹ️ No onboarding data found - new user");
         return null;
       }
       
@@ -238,7 +204,6 @@ export function AuthProvider({ children }) {
   // Enhance the submitOnboardingData function with better debugging
 
   async function submitOnboardingData(data, token = null) {
-    console.log("🔄 AuthContext: Submitting onboarding data to backend...", data);
     
     // Validate data has required fields
     if (!data || !data.dob || !data.gender || !data.height_in_cm || !data.weight_in_kg) {
@@ -255,16 +220,10 @@ export function AuthProvider({ children }) {
         throw new Error("Authentication required");
       }
       
-      // Log the full request details
-      console.log(`🔄 AuthContext: POST request to: ${API_URL}/onboarding`);
-      console.log(`🔄 AuthContext: Using token: ${authToken.substring(0, 15)}...`);
-      console.log(`🔄 AuthContext: Sending data:`, JSON.stringify(data, null, 2));
-      
       const response = await axios.post(`${API_URL}/onboarding`, data, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       
-      console.log("✅ AuthContext: Onboarding data submitted successfully:", response.data);
       
       // Important: Update the state with the response data
       if (response?.data?.data) {
@@ -353,10 +312,8 @@ export function AuthProvider({ children }) {
   // Add this function within AuthProvider
   async function checkAuthAndDataStatus() {
     try {
-      console.log("🔄 Checking auth and data status...");
       // First check if we have an authenticated user
       if (!currentUser) {
-        console.log("❌ No current user found");
         return { 
           authenticated: false,
           hasProfile: false,
@@ -367,14 +324,12 @@ export function AuthProvider({ children }) {
       // Check if we need to fetch the profile
       let profile = userProfile;
       if (!profile) {
-        console.log("🔄 User profile not in state, fetching...");
         profile = await fetchUserData();
       }
       
       // Check if we need to fetch onboarding data
       let onboarding = onboardingData;
       if (!onboarding) {
-        console.log("🔄 Onboarding data not in state, fetching...");
         onboarding = await fetchOnboardingData();
       }
       

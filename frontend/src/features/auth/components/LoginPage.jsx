@@ -25,18 +25,18 @@ const LoginPage = ({ onLoginSuccess, onRedirectToSignup, onBackToLanding }) => {
       const result = await authMethod(...authParams);
       
       if (result.user) {
-        console.log("✅ Authentication successful for:", result.user.email);
+        
         
         // Get a fresh token for checking onboarding data
         const token = await result.user.getIdToken(true);
         
         try {
           // Check if this user has completed onboarding
-          console.log("🔍 Checking for existing onboarding data...");
+          
           const onboardingData = await fetchOnboardingData(token);
           
           if (!onboardingData) {
-            console.log("⚠️ No onboarding data found for user");
+            
             setError("Your account exists but you need to complete your profile first.");
             
             // Delay redirect to give user time to read the message
@@ -46,13 +46,13 @@ const LoginPage = ({ onLoginSuccess, onRedirectToSignup, onBackToLanding }) => {
             return;
           }
           
-          console.log("✅ Onboarding data found, proceeding to dashboard");
+          
           // User has existing onboarding data - proceed to dashboard
           onLoginSuccess();
         } catch (dataError) {
           // If error is 404, redirect to onboarding
           if (dataError.response && dataError.response.status === 404) {
-            console.log("⚠️ 404 error - No onboarding data found");
+            
             setError("Your account exists but you need to complete your profile first.");
             
             setTimeout(() => {

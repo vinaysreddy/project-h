@@ -13,7 +13,7 @@ const openai = new OpenAI({
 });
 
 // Check OpenAI API key
-console.log("OpenAI API Key available:", !!process.env.OPENAI_API_KEY);
+
 
 // Basic coach prompt function
 const generateCoachPrompt = (userData, messages, message) => {
@@ -169,7 +169,7 @@ router.post('/chat', authenticateUser, async (req, res) => {
       timestamp: new Date().toISOString() // Use ISO string instead of server timestamp for now
     };
     
-    console.log("Saving messages to Firestore");
+    
     
     // First check if the document exists
     const chatDocRef = db.collection('coach_chats').doc(uid);
@@ -189,7 +189,7 @@ router.post('/chat', authenticateUser, async (req, res) => {
       });
     }
     
-    console.log("Messages saved successfully");
+    
     
     // Return success with AI response
     return res.status(200).json({
@@ -213,6 +213,16 @@ router.post('/summary', authenticateUser, async (req, res) => {
     const uid = req.user.uid;
     const { context } = req.body;
     
+    // If this is for sleep context, return early since we have a dedicated endpoint
+    if (context === 'sleep') {
+      return res.status(200).json({
+        success: true,
+        summary: null
+      });
+    }
+    
+    // Rest of the existing code remains the same
+
     // Fetch user's onboarding data for context
     const onboardingDoc = await db.collection('onboarding_data').doc(uid).get();
     const userDataFromDb = onboardingDoc.exists ? onboardingDoc.data() : {};
@@ -265,21 +275,6 @@ router.post('/summary', authenticateUser, async (req, res) => {
       prompt += `Focus on their fitness needs and exercise recommendations for their ${healthMetrics?.bmiCategory || 'current'} BMI and ${combinedUserData.primaryGoal || 'health'} goals.`;
       if (hasSleepData) {
         prompt += ` Consider how their sleep quality might impact recovery and workout performance.`;
-      }
-    } else if (context === 'sleep') {
-      if (hasSleepData) {
-        prompt += `IMPORTANT - You are analyzing sleep data with these metrics:
-${userData.sleepInsights}
-
-Focus on providing a personalized assessment of their sleep quality, patterns, and how it affects their overall health. 
-Address any concerning patterns in their sleep data and provide actionable recommendations to improve sleep quality.
-
-If their deep sleep percentage is below 15%, emphasize the importance of deep sleep.
-If their sleep consistency score is below 5/10, suggest ways to improve sleep schedule regularity.
-If their sleep quality score is above 80/100, acknowledge their good sleep habits.
-`;
-      } else {
-        prompt += `Focus on general sleep recommendations based on their health profile and ${combinedUserData.primaryGoal || 'health'} goals.`;
       }
     } else {
       prompt += `Provide a general health overview and recommendations based on their current metrics and goals.`;

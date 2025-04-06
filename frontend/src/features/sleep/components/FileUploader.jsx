@@ -47,7 +47,7 @@ const FileUploader = ({ onDataProcessed }) => {
   
   // Process the raw CSV data into usable format
   const processHealthData = (data) => {
-    console.log("Raw data:", data[0]); // Log the first row to understand structure
+     // Log the first row to understand structure
     
     // Filter out rows with no sleep data
     const sleepData = data.filter(row => {
@@ -61,7 +61,7 @@ const FileUploader = ({ onDataProcessed }) => {
       throw new Error("No sleep data found in the uploaded file");
     }
     
-    console.log("Found sleep data rows:", sleepData.length);
+    
     
     // Map to more usable structure
     return sleepData.map(row => ({

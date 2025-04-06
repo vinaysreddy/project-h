@@ -16,7 +16,7 @@ export const transformDietPlanData = (apiData) => {
   }
 
   try {
-    console.log("Processing diet plan data:", apiData);
+    
     
     // Initialize result structure
     const transformedData = {};
@@ -26,17 +26,17 @@ export const transformDietPlanData = (apiData) => {
     
     // Case 1: meal_plan contains days array (new format from formatting function)
     if (typeof apiData.meal_plan === 'object' && apiData.meal_plan.days) {
-      console.log("Detected structured meal_plan with days array");
+      
       mealPlanData = apiData.meal_plan.days;
     } 
     // Case 2: meal_plan is an array directly (old format)
     else if (Array.isArray(apiData.meal_plan)) {
-      console.log("Detected direct array meal_plan structure");
+      
       mealPlanData = apiData.meal_plan;
     }
     // Case 3: result stored in formatted_plan
     else if (apiData.formatted_plan && apiData.formatted_plan.days) {
-      console.log("Using formatted_plan data structure");
+      
       mealPlanData = apiData.formatted_plan.days;
     }
     // Error case - no valid data structure

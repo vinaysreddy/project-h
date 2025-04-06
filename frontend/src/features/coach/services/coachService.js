@@ -11,13 +11,13 @@ const API_URL = 'http://localhost:3000';
  */
 export const sendChatMessage = async (data, token) => {
   try {
-    console.log('Sending message to AI coach:', data.message);
+    
     
     const response = await axios.post(`${API_URL}/coach/chat`, data, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('AI coach response:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('Error communicating with AI coach:', error);
@@ -32,13 +32,13 @@ export const sendChatMessage = async (data, token) => {
  */
 export const getChatHistory = async (token) => {
   try {
-    console.log('Fetching chat history');
+    
     
     const response = await axios.get(`${API_URL}/coach/history`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('Chat history retrieved:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('Error retrieving chat history:', error);
@@ -54,11 +54,16 @@ export const getChatHistory = async (token) => {
  */
 export const getAISummary = async (data, token) => {
   try {
+    // Skip for sleep context since we have a dedicated component
+    if (data.context === 'sleep') {
+      return { summary: null };
+    }
+    
     // Flag to determine if we should use the server API
     const useServerApi = true;
     
     if (useServerApi && token) {
-      console.log('Fetching AI summary from server for:', data.context);
+      
       
       // Before sending to API, ensure numeric values are properly formatted
       const normalizedData = {
@@ -76,7 +81,7 @@ export const getAISummary = async (data, token) => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      console.log('AI summary response:', response.data);
+      
       return response.data;
     } else {
       // Fallback to client-side summary generation
@@ -98,6 +103,11 @@ const generateClientSideSummary = async (data) => {
   await new Promise(resolve => setTimeout(resolve, 300));
   
   const { userData, healthMetrics, context } = data;
+  
+  // Skip for sleep context since we have a dedicated component
+  if (context === 'sleep') {
+    return { summary: null };
+  }
   
   // Extract relevant user information with fallbacks
   const firstName = userData?.displayName?.split(' ')[0] || 'there';
@@ -159,10 +169,6 @@ const generateClientSideSummary = async (data) => {
       }
       break;
     
-    case 'sleep':
-      summary = `Hi ${firstName}! Quality sleep is crucial for your ${friendlyGoal} goals. Consider tracking your sleep patterns to ensure you're getting 7-9 hours of restorative sleep each night. Good sleep improves recovery, helps manage weight, and optimizes your overall health.`;
-      break;
-      
     default: // home tab
       summary = `Welcome back, ${firstName}! Your BMI is ${bmiFormatted} (${bmiCategory.toLowerCase()}). Today, focus on hitting your ${calorieTarget} calorie target and staying active to support your ${friendlyGoal} goals. Need any specific advice today?`;
   }

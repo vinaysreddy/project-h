@@ -53,6 +53,7 @@ const Dashboard = () => {
   const [userData, setUserData] = useState(null);
   const [healthMetrics, setHealthMetrics] = useState({});
   const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   /**
    * Calculate user's health metrics from raw data
@@ -115,7 +116,7 @@ const Dashboard = () => {
    */
   useEffect(() => {
     const loadUserData = async () => {
-      console.log("🔄 Dashboard: Starting to load user data...");
+      
       try {
         setIsLoading(true);
         setError(null);
@@ -200,7 +201,7 @@ const Dashboard = () => {
    */
   const handleSleepDataProcessed = (sleepData) => {
     if (sleepData && sleepData.length > 0 && aiCoachRef.current) {
-      console.log("Sleep data processed, updating AI Coach context...", sleepData.length);
+      
       
       // Calculate recent sleep metrics for summary
       const recentData = sleepData.slice(-7); // Get last week
@@ -218,6 +219,14 @@ const Dashboard = () => {
         }
       }, 1000);
     }
+  };
+
+  /**
+   * Set active tab and close mobile nav if open
+   */
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setIsMobileNavOpen(false);
   };
 
   /**
@@ -247,68 +256,135 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-0 relative overflow-hidden">
-      {/* Minimal, professional background accents */}
-      <div className="fixed top-0 right-0 w-[650px] h-[650px] bg-gradient-to-b from-[#4D55CC]/[0.03] to-transparent rounded-full transform translate-x-1/3 -translate-y-1/3"></div>
-      <div className="fixed bottom-0 left-0 w-[800px] h-[800px] bg-gradient-to-t from-[#3E7B27]/[0.02] to-transparent rounded-full transform -translate-x-1/2 translate-y-1/2"></div>
+      {/* Enhanced decorative background circles */}
+      <div className="absolute top-20 -right-12 w-64 h-64 bg-[#e72208]/15 rounded-full opacity-80"></div>
+      <div className="absolute top-110 -left-28 w-64 h-64 bg-[#3E7B27]/15 rounded-full opacity-80"></div>
+      <div className="absolute -bottom-20 left-1/4 w-46 h-46 bg-[#4D55CC]/15 rounded-full opacity-80"></div>
+      <div className="absolute top-60 left-1/3 w-24 h-24 bg-[#e72208]/10 rounded-full opacity-60"></div>
+      <div className="absolute bottom-10 -right-10 w-32 h-32 bg-[#3E7B27]/10 rounded-full opacity-60"></div>
+      <div className="absolute top-10 right-1/4 w-20 h-20 bg-[#4D55CC]/10 rounded-full opacity-50"></div>
       
       {/* Single accent line for subtle brand presence */}
-      <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-[#4D55CC]/30 via-[#3E7B27]/30 to-[#e72208]/30"></div>
+      <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-[#4D55CC]/30 via-[#3E7B27]/30 to-[#e72208]/30 z-40"></div>
       
-
-      {/* Enhanced top navigation bar */}
-      <div className="sticky top-0 z-30 w-full bg-white/95 border-b border-gray-100 shadow-sm backdrop-blur-sm">
-  <div className="max-w-7xl mx-auto px-4 md:px-6">
-    <div className="flex justify-between items-center h-16">
-      <div className="flex items-center">
-        <div className="bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] p-1.5 rounded-lg mr-2">
-          <LayoutGrid className="h-5 w-5 text-white" />
-        </div>
-        <h1 className="text-xl font-bold bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] bg-clip-text text-transparent">
-          Project Health
-        </h1>
-      </div>
-      
-      {userData && (
-        <div className="flex items-center gap-4">
-          {/* User avatar */}
-          <div className="flex items-center">
-            {userData.photoURL ? (
-              <img 
-                src={userData.photoURL} 
-                alt={userData.displayName || "User"} 
-                className="h-9 w-9 rounded-full border-2 border-white shadow-sm"
-              />
-            ) : (
-              <div className="h-9 w-9 rounded-full bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] flex items-center justify-center text-white">
-                {userData.displayName ? userData.displayName.charAt(0).toUpperCase() : "U"}
+      {/* Enhanced top navigation bar - mobile responsive */}
+      <div className="fixed top-0 left-0 z-30 w-full bg-white/95 border-b border-gray-100 shadow-sm backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <div className="bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] p-1.5 rounded-lg mr-2">
+                <LayoutGrid className="h-5 w-5 text-white" />
+              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] bg-clip-text text-transparent">
+                Project Health
+              </h1>
+            </div>
+            
+            {userData && (
+              <div className="flex items-center gap-2 md:gap-4">
+                {/* Mobile menu button */}
+                <button
+                  className="md:hidden p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200"
+                  onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {isMobileNavOpen ? (
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    ) : (
+                      <path d="M3 12h18M3 6h18M3 18h18" />
+                    )}
+                  </svg>
+                </button>
+                
+                {/* User avatar */}
+                <div className="flex items-center">
+                  {userData.photoURL ? (
+                    <img 
+                      src={userData.photoURL} 
+                      alt={userData.displayName || "User"} 
+                      className="h-9 w-9 rounded-full border-2 border-white shadow-sm"
+                    />
+                  ) : (
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-r from-[#4D55CC] to-[#3E7B27] flex items-center justify-center text-white">
+                      {userData.displayName ? userData.displayName.charAt(0).toUpperCase() : "U"}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Logout button - hidden on small screens */}
+                <button 
+                  onClick={handleLogout}
+                  className="hidden md:flex py-1.5 px-3 text-sm font-medium text-white bg-[#e13e29] hover:bg-[#d31d04] rounded-md items-center"
+                  aria-label="Logout"
+                >
+                  <LogOut className="h-4 w-4 mr-1.5" />
+                  <span>Logout</span>
+                </button>
               </div>
             )}
           </div>
           
-          {/* Logout button */}
-          <button 
-            onClick={handleLogout}
-            className="py-1.5 px-3 text-sm font-medium text-white bg-[#e13e29] hover:bg-[#d31d04] rounded-md flex items-center"
-            aria-label="Logout"
-          >
-            <LogOut className="h-4 w-4 mr-1.5" />
-            <span>Logout</span>
-          </button>
+          {/* Mobile navigation menu */}
+          {isMobileNavOpen && (
+            <div className="md:hidden bg-white py-3 px-2 border-t border-gray-100 shadow-sm">
+              <div className="flex flex-col space-y-2">
+                <button
+                  onClick={() => handleTabChange('home')}
+                  className={`flex items-center px-4 py-2 rounded-lg text-left ${activeTab === 'home' ? 'bg-[#4D55CC]/10 text-[#4D55CC]' : 'hover:bg-gray-100'}`}
+                >
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  <span>Dashboard</span>
+                </button>
+                
+                <button
+                  onClick={() => handleTabChange('nutrition')}
+                  className={`flex items-center px-4 py-2 rounded-lg text-left ${activeTab === 'nutrition' ? 'bg-[#3E7B27]/10 text-[#3E7B27]' : 'hover:bg-gray-100'}`}
+                >
+                  <UtensilsCrossed className="h-4 w-4 mr-2" />
+                  <span>Nutrition</span>
+                </button>
+                
+                <button
+                  onClick={() => handleTabChange('fitness')}
+                  className={`flex items-center px-4 py-2 rounded-lg text-left ${activeTab === 'fitness' ? 'bg-[#e72208]/10 text-[#e72208]' : 'hover:bg-gray-100'}`}
+                >
+                  <Activity className="h-4 w-4 mr-2" />
+                  <span>Fitness</span>
+                </button>
+                
+                <button
+                  onClick={() => handleTabChange('sleep')}
+                  className={`flex items-center px-4 py-2 rounded-lg text-left ${activeTab === 'sleep' ? 'bg-[#4D55CC]/10 text-[#4D55CC]' : 'hover:bg-gray-100'}`}
+                >
+                  <Moon className="h-4 w-4 mr-2" />
+                  <span>Sleep</span>
+                </button>
+                
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center px-4 py-2 text-[#e13e29] rounded-lg text-left hover:bg-red-50"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  </div>
-</div>
+      </div>
       
-      {/* Main content container */}
-      <main className="max-w-7xl mx-auto px-4 md:px-6 pt-8 pb-20 relative z-10">
-        {/* Secondary dashboard title with greeting */}
-        <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+      {/* Create a spacer div that pushes content down by exactly the height of the navbar */}
+      <div className="h-16"></div>
+      
+      {/* Main content container with significantly increased top padding */}
+      <main className="max-w-7xl mx-auto px-4 md:px-6 pt-10 md:pt-10 pb-16 md:pb-20 relative z-10">
+        {/* Secondary dashboard title with greeting - now with extra margin on mobile */}
+        <div className="mt-10 md:mt-14 mb-6 md:mb-12 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
           <div>
             <span className="text-sm text-gray-500 font-medium mb-1 block">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </span>
-            <h2 className="text-3xl font-bold text-gray-800">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
               Hello, {userData?.displayName?.split(' ')[0] || 'there'} 👋
             </h2>
           </div>
@@ -330,38 +406,63 @@ const Dashboard = () => {
           onValueChange={setActiveTab}
           value={activeTab}
         >
-          {/* Improved Tab Navigation */}
-          <div className="mb-8">
+          {/* Improved Tab Navigation - hidden on mobile as we use the top menu */}
+          <div className="mb-6 md:mb-8 hidden md:block">
             <TabsList className="inline-flex p-1 rounded-xl bg-gray-100/80 shadow-sm">
               <TabsTrigger 
                 value="home" 
-                className="rounded-lg px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#4D55CC] transition-all"
+                className="rounded-lg px-4 md:px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#4D55CC] transition-all"
               >
                 <LayoutGrid className="h-4 w-4 mr-2" />
                 <span>Dashboard</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="nutrition" 
-                className="rounded-lg px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#3E7B27] transition-all"
+                className="rounded-lg px-4 md:px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#3E7B27] transition-all"
               >
                 <UtensilsCrossed className="h-4 w-4 mr-2" />
                 <span>Nutrition</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="fitness" 
-                className="rounded-lg px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#e72208] transition-all"
+                className="rounded-lg px-4 md:px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#e72208] transition-all"
               >
                 <Activity className="h-4 w-4 mr-2" />
                 <span>Fitness</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="sleep" 
-                className="rounded-lg px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#4D55CC] transition-all"
+                className="rounded-lg px-4 md:px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#4D55CC] transition-all"
               >
                 <Moon className="h-4 w-4 mr-2" />
                 <span>Sleep</span>
               </TabsTrigger>
             </TabsList>
+          </div>
+          
+          {/* Mobile tab indicator */}
+          <div className="md:hidden mb-6">
+            <div className="flex items-center">
+              <div className={`
+                w-8 h-8 rounded-lg flex items-center justify-center mr-2
+                ${activeTab === 'home' ? 'bg-[#4D55CC]/10 text-[#4D55CC]' : 
+                  activeTab === 'nutrition' ? 'bg-[#3E7B27]/10 text-[#3E7B27]' :
+                  activeTab === 'fitness' ? 'bg-[#e72208]/10 text-[#e72208]' :
+                  'bg-[#4D55CC]/10 text-[#4D55CC]'
+                }
+              `}>
+                {activeTab === 'home' ? <LayoutGrid className="h-5 w-5" /> : 
+                 activeTab === 'nutrition' ? <UtensilsCrossed className="h-5 w-5" /> :
+                 activeTab === 'fitness' ? <Activity className="h-5 w-5" /> :
+                 <Moon className="h-5 w-5" />}
+              </div>
+              <h3 className="font-medium text-lg">
+                {activeTab === 'home' ? 'Dashboard' : 
+                 activeTab === 'nutrition' ? 'Nutrition' :
+                 activeTab === 'fitness' ? 'Fitness' :
+                 'Sleep'}
+              </h3>
+            </div>
           </div>
           
           {/* Loading state */}
@@ -375,9 +476,9 @@ const Dashboard = () => {
           ) : (
             <>
               {/* Dashboard Tab - Shows health overview first */}
-              <TabsContent value="home" className="space-y-8 mt-0">
+              <TabsContent value="home" className="space-y-6 md:space-y-8 mt-0">
                 {/* Health summary metrics - Only on Dashboard tab */}
-                <div className="mb-8">
+                <div className="mb-6 md:mb-8">
                   <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
                     <BarChart2 className="h-5 w-5 mr-2 text-[#4D55CC]" />
                     Health Overview
@@ -416,13 +517,13 @@ const Dashboard = () => {
                     Quick Access
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {/* Nutrition Card */}
                     <Card className="overflow-hidden rounded-2xl hover:shadow-md transition-all duration-300 border-0 shadow bg-white group">
                       <CardContent className="p-0">
                         <button 
                           className="w-full p-6 text-left relative"
-                          onClick={() => setActiveTab('nutrition')}
+                          onClick={() => handleTabChange('nutrition')}
                         >
                           <div className="absolute inset-0 bg-[#3E7B27]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                           <div className="p-2.5 rounded-xl bg-[#3E7B27]/10 mb-4 w-fit">
@@ -443,7 +544,7 @@ const Dashboard = () => {
                       <CardContent className="p-0">
                         <button 
                           className="w-full p-6 text-left relative"
-                          onClick={() => setActiveTab('fitness')}
+                          onClick={() => handleTabChange('fitness')}
                         >
                           <div className="absolute inset-0 bg-[#e72208]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                           <div className="p-2.5 rounded-xl bg-[#e72208]/10 mb-4 w-fit">
@@ -459,18 +560,21 @@ const Dashboard = () => {
                       </CardContent>
                     </Card>
                     
-                    {/* Profile Card */}
+                    {/* Sleep Card - Replaced Profile Card */}
                     <Card className="overflow-hidden rounded-2xl hover:shadow-md transition-all duration-300 border-0 shadow bg-white group">
                       <CardContent className="p-0">
-                        <button className="w-full p-6 text-left relative">
+                        <button 
+                          className="w-full p-6 text-left relative"
+                          onClick={() => handleTabChange('sleep')}  
+                        >
                           <div className="absolute inset-0 bg-[#4D55CC]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                           <div className="p-2.5 rounded-xl bg-[#4D55CC]/10 mb-4 w-fit">
-                            <User className="h-5 w-5 text-[#4D55CC]" />
+                            <Moon className="h-5 w-5 text-[#4D55CC]" />
                           </div>
-                          <h4 className="text-lg font-medium text-gray-800 mb-1">Profile</h4>
-                          <p className="text-sm text-gray-500 mb-4">Update your personal information</p>
+                          <h4 className="text-lg font-medium text-gray-800 mb-1">Sleep</h4>
+                          <p className="text-sm text-gray-500 mb-4">Monitor and improve your sleep patterns</p>
                           <div className="flex items-center text-[#4D55CC] text-sm font-medium group-hover:translate-x-0.5 transition-transform">
-                            <span>View profile</span>
+                            <span>Go to sleep</span>
                             <ChevronRight className="h-4 w-4 ml-1" />
                           </div>
                         </button>
@@ -483,7 +587,7 @@ const Dashboard = () => {
               {/* Nutrition Tab */}
               <TabsContent value="nutrition" className="mt-0">
                 <Card className="rounded-2xl shadow-md border-0 bg-white">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 md:p-6">
                     <NutritionCard 
                       userData={userData || {}}
                       healthMetrics={healthMetrics}
@@ -495,7 +599,7 @@ const Dashboard = () => {
               {/* Fitness Tab */}
               <TabsContent value="fitness" className="mt-0">
                 <Card className="rounded-2xl shadow-md border-0 bg-white">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 md:p-6">
                     <WorkoutCard
                       userData={userData || {}}
                       healthMetrics={healthMetrics}
@@ -507,7 +611,7 @@ const Dashboard = () => {
               {/* Sleep Tab */}
               <TabsContent value="sleep" className="mt-0">
                 <Card className="rounded-2xl shadow-md border-0 bg-white">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 md:p-6">
                     <SleepAnalytics 
                       userData={userData || {}}
                       healthMetrics={healthMetrics}

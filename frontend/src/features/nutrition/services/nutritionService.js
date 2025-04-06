@@ -11,14 +11,14 @@ const API_URL = 'http://localhost:3000';
  */
 export const getDietQuestionnaire = async (token) => {
   try {
-    console.log('Fetching user diet questionnaire');
+    
     
     // Note: You may need to create this endpoint on the backend if it doesn't exist
     const response = await axios.get(`${API_URL}/diet/questionnaire`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('Diet questionnaire fetched successfully:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('Error fetching diet questionnaire:', error);
@@ -34,13 +34,13 @@ export const getDietQuestionnaire = async (token) => {
  */
 export const submitDietQuestionnaire = async (data, token) => {
   try {
-    console.log('Submitting diet questionnaire:', data);
+    
     
     const response = await axios.post(`${API_URL}/diet/questionnaire`, data, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('Diet questionnaire submitted successfully:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('Error submitting diet questionnaire:', error);
@@ -56,13 +56,13 @@ export const submitDietQuestionnaire = async (data, token) => {
  */
 export const generateDietPlan = async (userData, token) => {
   try {
-    console.log('Generating diet plan with data:', userData);
+    
     
     const response = await axios.post(`${API_URL}/diet/gen`, userData, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('Diet plan generated successfully:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('Error generating diet plan:', error);
@@ -77,13 +77,13 @@ export const generateDietPlan = async (userData, token) => {
  */
 export const getDietPlan = async (token) => {
   try {
-    console.log('Fetching diet plan');
+    
     
     const response = await axios.get(`${API_URL}/diet/plan`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('Diet plan fetched successfully:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('Error fetching diet plan:', error);

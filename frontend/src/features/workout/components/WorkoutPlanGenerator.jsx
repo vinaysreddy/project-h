@@ -35,7 +35,6 @@ const WorkoutPlanGenerator = ({ userData, healthMetrics, onWorkoutPlanGenerated 
     try {
       setIsLoading(true);
       setError(null);
-      console.log("🔄 Generating workout plan...");
 
       // Get auth token
       const token = await getToken();
@@ -46,22 +45,18 @@ const WorkoutPlanGenerator = ({ userData, healthMetrics, onWorkoutPlanGenerated 
 
       // Generate the workout plan
       const generationResponse = await generateWorkoutPlan({}, token);
-      console.log("✅ Workout plan generated successfully", generationResponse);
 
       // IMPORTANT: Add a small delay to ensure Firestore has time to update
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Fetch the generated plan
       const workoutPlanResponse = await getWorkoutPlan(token);
-      console.log("📋 Retrieved workout plan:", workoutPlanResponse);
 
       // Transform the data for the UI with better error checking
       if (workoutPlanResponse && workoutPlanResponse.workout_plan) {
         // Add more specific logging to debug the transformation
-        console.log("🔍 Raw plan structure:", JSON.stringify(workoutPlanResponse));
         
         const formattedWorkoutPlan = transformWorkoutPlanData(workoutPlanResponse);
-        console.log("🎯 Formatted workout plan for UI:", formattedWorkoutPlan);
         onWorkoutPlanGenerated(formattedWorkoutPlan);
       } else {
         console.error("❌ Invalid workout plan structure:", workoutPlanResponse);

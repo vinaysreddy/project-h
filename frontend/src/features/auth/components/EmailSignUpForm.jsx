@@ -30,19 +30,19 @@ const EmailSignUpForm = ({ onSignUpSuccess, loading, setLoading, setError, formD
       setLoading(true);
       setError('');
       
-      console.log("🔄 Starting email signup process...");
+      
       const result = await signUpWithEmail(email, password);
-      console.log("✅ Email signup successful, user created");
+      
       
       // Format onboarding data
       if (formData && Object.keys(formData).filter(key => !!formData[key]).length > 0) {
         try {
-          console.log("📊 Processing onboarding data for submission...");
+          
           
           // Ensure we have a fresh token
-          console.log("🔄 Getting fresh token for new user...");
+          
           const token = await result.user.getIdToken(true);
-          console.log("✅ Fresh token obtained for new user");
+          
           
           // Format onboarding data for backend
           const formattedData = {
@@ -65,15 +65,15 @@ const EmailSignUpForm = ({ onSignUpSuccess, loading, setLoading, setError, formD
           };
           
           // Submit data
-          console.log("📤 Submitting onboarding data:", formattedData);
+          
           await submitOnboardingData(formattedData, token);
-          console.log("✅ Onboarding data submitted successfully");
+          
         } catch (onboardingError) {
           console.error("❌ Error submitting onboarding data:", onboardingError);
           // Continue anyway
         }
       } else {
-        console.log("📊 No form data to submit");
+        
       }
       
       // Pass the authenticated user to the parent component

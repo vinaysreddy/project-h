@@ -10,7 +10,7 @@ router.post("/", authenticateUser, async (req, res) => {
         const { uid } = req.user; // Get user ID from Firebase Auth
         const data = req.body;
         
-        console.log(`📥 Processing onboarding submission for user ${uid}:`, data);
+        
 
         // Important change: Don't reject if document exists, update it instead
         const docRef = db.collection("user_questionnaire").doc(uid);
@@ -35,16 +35,16 @@ router.post("/", authenticateUser, async (req, res) => {
             updated_at: new Date().toISOString()
         };
 
-        console.log(`📦 Formatted data for Firestore:`, formattedData);
+        
         
         if (doc.exists) {
-            console.log(`🔄 Updating existing questionnaire for user ${uid}`);
+            
             await docRef.update(formattedData);
-            console.log(`✅ Questionnaire updated successfully for user ${uid}`);
+            
         } else {
-            console.log(`🆕 Creating new questionnaire for user ${uid}`);
+            
             await docRef.set(formattedData);
-            console.log(`✅ Questionnaire created successfully for user ${uid}`);
+            
         }
 
         res.status(200).json({ 

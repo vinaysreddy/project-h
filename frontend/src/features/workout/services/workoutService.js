@@ -11,13 +11,13 @@ const API_URL = 'http://localhost:3000';
  */
 export const getWorkoutQuestionnaire = async (token) => {
   try {
-    console.log('🔄 Fetching user workout questionnaire');
+    
     
     const response = await axios.get(`${API_URL}/workout/questionnaire`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('✅ Workout questionnaire fetched successfully:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('❌ Error fetching workout questionnaire:', error);
@@ -33,13 +33,13 @@ export const getWorkoutQuestionnaire = async (token) => {
  */
 export const submitWorkoutQuestionnaire = async (data, token) => {
   try {
-    console.log('🔄 Submitting workout questionnaire:', data);
+    
     
     const response = await axios.post(`${API_URL}/workout/questionnaire`, data, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('✅ Workout questionnaire submitted successfully:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('❌ Error submitting workout questionnaire:', error);
@@ -55,13 +55,13 @@ export const submitWorkoutQuestionnaire = async (data, token) => {
  */
 export const generateWorkoutPlan = async (userData, token) => {
   try {
-    console.log('🔄 Generating workout plan with data:', userData);
+    
     
     const response = await axios.post(`${API_URL}/workout/gen`, userData, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('✅ Workout plan generated successfully:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('❌ Error generating workout plan:', error);
@@ -76,13 +76,13 @@ export const generateWorkoutPlan = async (userData, token) => {
  */
 export const getWorkoutPlan = async (token) => {
   try {
-    console.log('🔄 Fetching workout plan');
+    
     
     const response = await axios.get(`${API_URL}/workout/plan`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('✅ Workout plan fetched successfully:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('❌ Error fetching workout plan:', error);

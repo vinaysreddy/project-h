@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { 
-  MessageSquare, 
   Sparkles, 
   AlertCircle,
   UtensilsCrossed, 
@@ -12,64 +10,60 @@ import {
   Dumbbell, 
   Timer, 
   Bike, 
-  Moon, 
-  BedDouble, 
-  AlarmClock,
   Activity, 
-  BarChart2,
-  Heart
 } from 'lucide-react';
 import { getAISummary } from '../../coach/services/coachService';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Update the CustomAnimations component for more noticeable float animations
-
+// Fixed CustomAnimations component - removed jsx and global attributes
 const CustomAnimations = () => (
-  <style jsx global>{`
-    @keyframes float-vertical {
-      0% { transform: translateY(0px) rotate(var(--icon-rotation, 0deg)); }
-      50% { transform: translateY(-12px) rotate(var(--icon-rotation, 0deg)); }
-      100% { transform: translateY(0px) rotate(var(--icon-rotation, 0deg)); }
-    }
-    
-    @keyframes float-horizontal {
-      0% { transform: translateX(0px) rotate(var(--icon-rotation, 0deg)); }
-      50% { transform: translateX(8px) rotate(var(--icon-rotation, 0deg)); }
-      100% { transform: translateX(0px) rotate(var(--icon-rotation, 0deg)); }
-    }
-    
-    @keyframes pulse-slow {
-      0%, 100% { opacity: var(--base-opacity, 0.1); }
-      50% { opacity: calc(var(--base-opacity, 0.1) * 2); }
-    }
-    
-    .animate-float-v {
-      animation: float-vertical 6s ease-in-out infinite;
-      --base-opacity: 0.12;
-    }
-    
-    .animate-float-v-slow {
-      animation: float-vertical 8s ease-in-out infinite;
-      animation-delay: 0.5s;
-      --base-opacity: 0.14;
-    }
-    
-    .animate-float-h {
-      animation: float-horizontal 7s ease-in-out infinite;
-      --base-opacity: 0.12;
-    }
-    
-    .animate-float-h-slow {
-      animation: float-horizontal 9s ease-in-out infinite;
-      animation-delay: 1.5s;
-      --base-opacity: 0.14;
-    }
-    
-    .animate-pulse-slow {
-      animation: pulse-slow 7s ease-in-out infinite;
-      --base-opacity: 0.12;
-    }
-  `}</style>
+  <>
+    <style dangerouslySetInnerHTML={{ __html: `
+      @keyframes float-vertical {
+        0% { transform: translateY(0px) rotate(var(--icon-rotation, 0deg)); }
+        50% { transform: translateY(-12px) rotate(var(--icon-rotation, 0deg)); }
+        100% { transform: translateY(0px) rotate(var(--icon-rotation, 0deg)); }
+      }
+      
+      @keyframes float-horizontal {
+        0% { transform: translateX(0px) rotate(var(--icon-rotation, 0deg)); }
+        50% { transform: translateX(8px) rotate(var(--icon-rotation, 0deg)); }
+        100% { transform: translateX(0px) rotate(var(--icon-rotation, 0deg)); }
+      }
+      
+      @keyframes pulse-slow {
+        0%, 100% { opacity: var(--base-opacity, 0.1); }
+        50% { opacity: calc(var(--base-opacity, 0.1) * 2); }
+      }
+      
+      .animate-float-v {
+        animation: float-vertical 6s ease-in-out infinite;
+        --base-opacity: 0.12;
+      }
+      
+      .animate-float-v-slow {
+        animation: float-vertical 8s ease-in-out infinite;
+        animation-delay: 0.5s;
+        --base-opacity: 0.14;
+      }
+      
+      .animate-float-h {
+        animation: float-horizontal 7s ease-in-out infinite;
+        --base-opacity: 0.12;
+      }
+      
+      .animate-float-h-slow {
+        animation: float-horizontal 9s ease-in-out infinite;
+        animation-delay: 1.5s;
+        --base-opacity: 0.14;
+      }
+      
+      .animate-pulse-slow {
+        animation: pulse-slow 7s ease-in-out infinite;
+        --base-opacity: 0.12;
+      }
+    `}} />
+  </>
 );
 
 const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) => {
@@ -77,8 +71,8 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const { getToken } = useAuth();
-  
-  // Get context-specific colors and icons while keeping AI icon consistent
+
+  // Get context-specific colors and icons
   const getContextVisuals = () => {
     switch(activeTab) {
       case 'nutrition':
@@ -105,62 +99,48 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
           ],
           iconColor: "#e72208"
         };
-      case 'sleep':
-        return {
-          gradient: "from-[#4D55CC] to-[#8662E3]",
-          bgGradient: "from-[#4D55CC]/5 to-[#8662E3]/5",
-          icons: [
-            { Icon: Moon, position: "top-6 right-12", size: "h-9 w-9", opacity: "0.12", rotate: "rotate-12", animation: "animate-float-v" },
-            { Icon: BedDouble, position: "bottom-8 left-16", size: "h-10 w-10", opacity: "0.12", rotate: "rotate-0", animation: "animate-float-h-slow" },
-            { Icon: AlarmClock, position: "top-20 left-36", size: "h-8 w-8", opacity: "0.12", rotate: "-rotate-6", animation: "animate-pulse-slow" },
-            { Icon: Moon, position: "bottom-4 right-48", size: "h-7 w-7", opacity: "0.12", rotate: "-rotate-12", animation: "animate-float-v-slow" }
-          ],
-          iconColor: "#4D55CC"
-        };
       default:
         return {
           gradient: "from-[#4D55CC] to-[#3E7B27]",
           bgGradient: "from-[#4D55CC]/5 to-[#3E7B27]/5",
-          icons: [
-          ],
+          icons: [],
           iconColor: "#4D55CC"
         };
     }
   };
 
-  const { gradient, bgGradient, icons, iconColor } = getContextVisuals();
-  
   // Enhanced effect to fetch AI summary from backend
   useEffect(() => {
+    // Don't render for sleep tab
+    if (activeTab === 'sleep') {
+      setIsLoading(false);
+      return;
+    }
+    
     const loadSummary = async () => {
       setIsLoading(true);
       setError(null);
       
       try {
+        // Fix for "User profile not loaded" error - add more robust checks
+        if (!userData || Object.keys(userData).length === 0) {
+          setSummary("Getting your personalized insights ready...");
+          setIsLoading(false);
+          return;
+        }
+        
         // Get authentication token for API call
         const token = await getToken();
         if (!token) {
           throw new Error('Authentication required');
         }
         
-        // Make sure we have the required data
-        if (!userData || !userData.displayName) {
-          throw new Error('User profile not loaded');
-        }
-        
-        // Process sleep data if available on the sleep tab
-        const enhancedData = { ...userData };
-        if (activeTab === 'sleep' && userData.sleepData) {
-          enhancedData.sleepInsights = processSleepData(userData.sleepData);
-        }
-        
         // Normalize health metrics to handle different data formats
-        const normalizedMetrics = normalizeHealthMetrics(healthMetrics);
+        const normalizedMetrics = normalizeHealthMetrics(healthMetrics || {});
         
         // Get personalized AI summary based on current context
-        console.log(`Requesting AI summary for ${activeTab} tab`);
         const response = await getAISummary({
-          userData: enhancedData,
+          userData: userData,
           healthMetrics: normalizedMetrics,
           context: activeTab,
         }, token);
@@ -173,51 +153,20 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
       } catch (error) {
         console.error('Error fetching AI summary:', error);
         setError(error.message || 'Failed to load AI summary');
-        // Don't clear previous summary on error - just keep the last valid one
+        // Fall back to a generic message when there's an error
+        setSummary(getFallbackSummary());
       } finally {
         setIsLoading(false);
       }
     };
     
-    // Generate fallback content if we don't have any user data yet
-    if (!userData || !healthMetrics) {
-      setSummary('Welcome to your health dashboard. I can help you achieve your fitness goals.');
-      setIsLoading(false);
-      return;
-    }
-    
     // Debounce to prevent too many API calls when switching tabs
     const timer = setTimeout(() => {
       loadSummary();
-    }, 500); // Slightly longer delay to avoid unnecessary API calls
+    }, 500);
     
     return () => clearTimeout(timer);
   }, [userData, healthMetrics, activeTab, getToken]);
-  
-  // Process sleep data to generate meaningful insights
-  const processSleepData = (sleepData) => {
-    if (!sleepData || sleepData.length === 0) return "No sleep data available.";
-    
-    // Get the most recent 7 days of data
-    const recentData = sleepData.slice(-7);
-    
-    // Calculate averages
-    const avgSleepDuration = recentData.reduce((sum, night) => sum + (night.totalSleep || 0), 0) / recentData.length;
-    const avgDeepSleep = recentData.reduce((sum, night) => sum + (night.deepSleep || 0), 0) / recentData.length;
-    const deepSleepPercentage = avgSleepDuration > 0 ? (avgDeepSleep / avgSleepDuration) * 100 : 0;
-    
-    // Calculate sleep consistency (standard deviation of sleep durations)
-    const sleepDurations = recentData.map(night => night.totalSleep || 0);
-    const avg = sleepDurations.reduce((sum, val) => sum + val, 0) / sleepDurations.length;
-    const squareDiffs = sleepDurations.map(val => Math.pow(val - avg, 2));
-    const avgSquareDiff = squareDiffs.reduce((sum, val) => sum + val, 0) / squareDiffs.length;
-    const stdDev = Math.sqrt(avgSquareDiff);
-    
-    // Convert to a 0-10 consistency score (lower std deviation = higher consistency)
-    const consistency = Math.max(0, Math.min(10, 10 - (stdDev * 5)));
-    
-    return `Based on ${recentData.length} days of sleep data: You're averaging ${avgSleepDuration.toFixed(1)} hours of sleep per night with ${avgDeepSleep.toFixed(1)} hours of deep sleep (${deepSleepPercentage.toFixed(0)}% of total). Your sleep consistency score is ${consistency.toFixed(1)}/10. ${consistency > 7 ? 'Your sleep schedule is consistent, which is excellent for health.' : 'Your sleep schedule varies, which may impact overall health.'}`;
-  };
   
   // Normalize health metrics to handle different data formats
   const normalizeHealthMetrics = (metrics) => {
@@ -238,6 +187,14 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
     const firstName = userData?.displayName?.split(' ')[0] || 'there';
     return `Hi ${firstName}! I'm your Oats coach. I'm here to help you reach your fitness and nutrition goals.`;
   };
+
+  // Don't render anything for sleep tab
+  if (activeTab === 'sleep') {
+    return null;
+  }
+  
+  // Get visual elements for current context
+  const { gradient, bgGradient, icons, iconColor } = getContextVisuals();
 
   return (
     <>

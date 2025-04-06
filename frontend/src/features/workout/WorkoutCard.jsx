@@ -117,7 +117,7 @@ const WorkoutCard = ({ userData = {}, healthMetrics = {} }) => {
         
         // Get auth token
         const token = await getToken();
-        console.log("✅ Authentication token obtained");
+        
         
         if (!token) {
           console.error("❌ No auth token available");
@@ -125,33 +125,33 @@ const WorkoutCard = ({ userData = {}, healthMetrics = {} }) => {
         }
         
         // 1. Check if user has workout questionnaire data
-        console.log("🔍 Checking for existing workout preferences...");
+        
         const response = await getWorkoutQuestionnaire(token);
-        console.log("📋 Workout questionnaire response:", response);
+        
         
         if (response && response.data) {
-          console.log("✅ Found existing workout preferences");
+          
           setWorkoutPreferences(response.data);
           
           try {
-            console.log("🔄 Fetching existing workout plan...");
+            
             const workoutPlanResponse = await getWorkoutPlan(token);
-            console.log("📋 Workout plan response:", workoutPlanResponse);
+            
             
             // Add this check to handle both object and string responses
             const planData = typeof workoutPlanResponse === 'string' 
               ? { workout_plan: workoutPlanResponse } 
               : workoutPlanResponse;
 
-            console.log("🔄 Transforming workout plan data...");
+            
             const formattedWorkoutPlan = transformWorkoutPlanData(planData);
-            console.log("📋 Formatted workout plan:", formattedWorkoutPlan);
+            
             setWorkoutPlan(formattedWorkoutPlan);
           } catch (planError) {
-            console.log("⚠️ No existing workout plan or error fetching it", planError);
+            
           }
         } else {
-          console.log("ℹ️ No workout preferences found, showing questionnaire");
+          
           setShowQuestionnaire(true);
         }
       } catch (error) {
@@ -173,7 +173,7 @@ const WorkoutCard = ({ userData = {}, healthMetrics = {} }) => {
       setSubmissionError(null);
       setIsGeneratingPlan(true);
       
-      console.log("📝 Submitting workout preferences:", preferencesData);
+      
       
       // Get auth token
       const token = await getToken();
@@ -194,15 +194,15 @@ const WorkoutCard = ({ userData = {}, healthMetrics = {} }) => {
       
       // 1. Submit workout questionnaire
       const questionnaireResponse = await submitWorkoutQuestionnaire(completeData, token);
-      console.log('Workout questionnaire submission response:', questionnaireResponse);
+      
       
       // 2. Generate workout plan - backend will use stored questionnaire
       const workoutPlanResponse = await generateWorkoutPlan({}, token);
-      console.log('Workout plan generation response:', workoutPlanResponse);
+      
       
       // 3. Get the generated plan
       const planResponse = await getWorkoutPlan(token);
-      console.log('Workout plan retrieval response:', planResponse);
+      
       
       // Format the data using the utility function
       if (planResponse && planResponse.workout_plan) {
@@ -300,13 +300,13 @@ const WorkoutCard = ({ userData = {}, healthMetrics = {} }) => {
       
       // Fetch the latest workout plan
       const planResponse = await getWorkoutPlan(token);
-      console.log('Manually refreshed workout plan:', planResponse);
+      
       
       if (planResponse && planResponse.workout_plan) {
         const formattedWorkoutPlan = transformWorkoutPlanData(planResponse);
         setWorkoutPlan(formattedWorkoutPlan);
       } else {
-        console.log("No workout plan found during refresh");
+        
       }
     } catch (error) {
       console.error("Error refreshing workout plan:", error);

@@ -278,7 +278,7 @@ const AICoach = forwardRef(({ userData, healthMetrics, contextHint, hideHeader =
   const refreshContext = () => {
     if (contextData.sleepData && contextData.sleepData.length > 0) {
       try {
-        console.log("Refreshing sleep context in AI Coach...");
+        
         const recentSleepMetrics = processRecentSleepData(contextData.sleepData);
         if (recentSleepMetrics) {
           const sleepSummary = `Recent sleep data analysis: Average ${recentSleepMetrics.avgSleepDuration.toFixed(1)} hours per night over the last ${Math.min(contextData.sleepData.length, 7)} days. Sleep quality metrics: Deep sleep ${recentSleepMetrics.avgDeepSleep.toFixed(1)} hours (${recentSleepMetrics.deepSleepPercentage.toFixed(0)}% of total sleep), sleep consistency score: ${recentSleepMetrics.consistency}/10. Your recent sleep patterns suggest ${recentSleepMetrics.consistency > 7 ? 'good consistency' : 'room for improvement in sleep schedule consistency'}.`;
