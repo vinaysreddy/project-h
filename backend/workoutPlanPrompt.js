@@ -243,7 +243,7 @@ Remember: Return ONLY valid JSON with no explanations, backticks, or markdown.
 // Optional: Define a simplified way to turn the workout into a readable format
 export const formatWorkoutPlan = (workoutPlanData) => {
   try {
-    console.log("Raw data from OpenAI:", workoutPlanData);
+    // 
     
     // Try to parse the data if it's a string
     let plan;
@@ -265,7 +265,7 @@ export const formatWorkoutPlan = (workoutPlanData) => {
       plan = workoutPlanData;
     }
     
-    console.log("Parsed plan:", plan);
+    // 
     
     // Check if the plan has the expected structure
     if (!plan || !plan.workout_plan || !Array.isArray(plan.workout_plan.days)) {

@@ -60,7 +60,7 @@ export const generatePlan = async (
         });
 
         let planContent = response.choices[0].message.content.trim();
-        console.log(`Raw OpenAI Response (${planCollection}):`, planContent);
+        :`, planContent);
 
         // Remove any markdown code block indicators if present
         planContent = planContent.replace(/^```json\n|^```\n|```$/g, '');
@@ -152,7 +152,7 @@ export const generatePlanDirect = async (prompt) => {
         });
 
         let planContent = response.choices[0].message.content.trim();
-        console.log(`Raw OpenAI Response:`, planContent);
+        
 
         // Remove any markdown code block indicators if present
         planContent = planContent.replace(/^```json\n|^```\n|```$/g, '');

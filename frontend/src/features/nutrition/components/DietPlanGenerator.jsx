@@ -26,11 +26,11 @@ const DietPlanGenerator = ({ userData, healthMetrics, onDietPlanGenerated }) => 
       
       // Generate the diet plan with minimal data - backend will use stored questionnaire
       const generationResponse = await generateDietPlan({}, token);
-      console.log('Diet plan generation response:', generationResponse);
+      
       
       // Then retrieve the generated plan
       const dietPlanData = await getDietPlan(token);
-      console.log('Diet plan retrieved:', dietPlanData);
+      
       
       // Check if we have valid data
       if (!dietPlanData || !dietPlanData.meal_plan) {
@@ -44,7 +44,7 @@ const DietPlanGenerator = ({ userData, healthMetrics, onDietPlanGenerated }) => 
         throw new Error('Failed to format the diet plan data. Please try again.');
       }
       
-      console.log('Formatted diet plan:', formattedDietPlan);
+      
       
       // Pass the formatted diet plan back to the parent component
       onDietPlanGenerated(formattedDietPlan);

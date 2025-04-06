@@ -47,12 +47,12 @@ const AppFlow = () => {
   // Auto-submit onboarding data if we have both currentUser and pendingSubmission
   useEffect(() => {
     const submitPendingData = async () => {
-      console.log("🔍 Checking for pending onboarding data...");
-      console.log("👤 Current user:", currentUser?.email);
-      console.log("📦 Pending submission data:", pendingSubmission);
+      
+      
+      
       
       if (currentUser && pendingSubmission && Object.keys(pendingSubmission).length > 0) {
-        console.log("🔄 Auto-submitting pending onboarding data after authentication...");
+        
         setIsSubmitting(true);
         
         try {
@@ -68,7 +68,7 @@ const AppFlow = () => {
             return;
           }
           
-          console.log("📊 Preparing onboarding data from:", pendingSubmission);
+          
           
           // Format data consistently for backend
           const formattedData = {
@@ -90,11 +90,11 @@ const AppFlow = () => {
             other_medical_conditions: pendingSubmission.otherCondition || ''
           };
           
-          console.log("📤 Submitting formatted data:", formattedData);
+          
           
           // Submit the data
           await submitOnboardingData(formattedData, token);
-          console.log("✅ Onboarding data submitted successfully via auto-submission");
+          
           
           // Clear the pending submission since it's been processed
           setPendingSubmission(null);
@@ -142,8 +142,8 @@ const AppFlow = () => {
 
   // When completing the onboarding form
   const handleOnboardingComplete = () => {
-    console.log("📝 Saving onboarding form data for submission after authentication...");
-    console.log("📊 Form data to be submitted:", formData);
+    
+    
     
     // Save a deep copy of the form data to prevent modification
     setPendingSubmission({...formData});
@@ -156,8 +156,8 @@ const AppFlow = () => {
   // When login is successful
   const handleLoginSuccess = () => {
     // Don't clear form data immediately - let the useEffect handle submission
-    console.log("✅ Login successful, proceeding to dashboard");
-    console.log("📊 Current pending submission data:", pendingSubmission || "None");
+    
+    
     
     setShowLogin(false);
     setShowDirectLogin(false);

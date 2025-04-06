@@ -18,12 +18,12 @@ const Login = ({ onLoginSuccess, formData, onBackToLanding, onSwitchToLogin }) =
       setLoading(true);
       setError('');
       
-      console.log(`🔄 Starting ${providerName} authentication...`);
+      
       
       // Call the authentication method (Google or Facebook)
       const result = await signInMethod();
       
-      console.log(`✅ ${providerName} authentication successful:`, result.user.email);
+      
       
       // Proceed to dashboard - let AppFlow handle pendingSubmission
       onLoginSuccess();

@@ -29,7 +29,7 @@ const Dashboard = () => {
   // Fetch user data and process it
   useEffect(() => {
     const loadUserData = async () => {
-      console.log("🔄 Dashboard: Starting to load user data...");
+      
       try {
         setIsLoading(true);
         setError(null);
@@ -38,12 +38,12 @@ const Dashboard = () => {
         let profile = userProfile;
         let onboarding = onboardingData;
         
-        console.log("📋 Current user profile in state:", profile);
-        console.log("📋 Current onboarding data in state:", onboarding);
+        
+        
         
         // Only fetch if we don't have the data already
         if (!profile) {
-          console.log("🔄 Dashboard: User profile not found in state, fetching from API...");
+          
           profile = await fetchUserData();
           if (!profile) {
             throw new Error('Could not retrieve user profile');
@@ -52,7 +52,7 @@ const Dashboard = () => {
         
         // Onboarding data might not exist for new users
         if (!onboarding) {
-          console.log("🔄 Dashboard: Onboarding data not found in state, fetching from API...");
+          
           onboarding = await fetchOnboardingData();
         }
         
@@ -77,7 +77,7 @@ const Dashboard = () => {
           otherCondition: onboarding?.other_medical_conditions || ''
         };
         
-        console.log("📋 Dashboard: Formatted user data:", formattedUserData);
+        
         setUserData(formattedUserData);
         
         // Calculate health metrics only if we have necessary data

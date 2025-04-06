@@ -53,7 +53,7 @@ const WorkoutQuestionnaire = ({ userData, healthMetrics, onSubmit }) => {
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     
-    console.log(`📝 Form input changed: ${name} = ${type === 'checkbox' ? checked : value}`);
+    
     
     if (type === 'checkbox') {
       setFormData(prev => ({ ...prev, [name]: checked }));
@@ -82,12 +82,12 @@ const WorkoutQuestionnaire = ({ userData, healthMetrics, onSubmit }) => {
 
   // Navigate between steps
   const nextStep = () => {
-    console.log(`🔄 Moving to step ${step + 1} of questionnaire`);
+    
     setStep(prev => prev + 1);
   };
   
   const prevStep = () => {
-    console.log(`🔄 Moving back to step ${step - 1} of questionnaire`);
+    
     setStep(prev => prev - 1);
   };
 
@@ -96,7 +96,7 @@ const WorkoutQuestionnaire = ({ userData, healthMetrics, onSubmit }) => {
     if (e) e.preventDefault();
     
     try {
-      console.log("🔄 Processing form data for workout questionnaire submission...");
+      
       
       // Create the properly formatted data structure for the backend
       const workoutInputData = {
@@ -118,7 +118,7 @@ const WorkoutQuestionnaire = ({ userData, healthMetrics, onSubmit }) => {
         gender: userData.gender || 'not_specified'
       };
       
-      console.log("📋 Formatted data ready for backend:", workoutInputData);
+      
       
       // Call the parent component's onSubmit handler with the processed data
       await onSubmit(workoutInputData);

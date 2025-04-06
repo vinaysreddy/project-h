@@ -71,15 +71,15 @@ router.get("/user", authenticateUser, async (req, res) => {
             return res.status(400).json({ message: "Missing user ID" });
         }
         
-        console.log("Looking up user with UID:", uid);
-        console.log("Auth provider:", req.authProvider);
+        // 
+        // 
         
         // Find user in database
         const userRef = db.collection("users").doc(uid);
         const userDoc = await userRef.get();
 
         if (!userDoc.exists) {
-            console.log("User not found in database:", uid);
+            // 
             return res.status(404).json({ message: "User not found" });
         }
 

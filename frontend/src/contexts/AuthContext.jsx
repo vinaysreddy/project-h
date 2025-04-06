@@ -11,7 +11,10 @@ import {
 import { auth, googleProvider, facebookProvider } from '../config/firebase';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:3000' 
+    : 'https://project-h-ulkh.onrender.com');
 const AuthContext = createContext();
 
 export function useAuth() {

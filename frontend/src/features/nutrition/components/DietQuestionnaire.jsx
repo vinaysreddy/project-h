@@ -85,7 +85,7 @@ const DietQuestionnaire = ({ userData, healthMetrics, onSubmit }) => {
     if (e) e.preventDefault();
     
     try {
-      console.log("🔄 Processing form data for diet questionnaire submission...");
+      
       // Process any "other" fields
       const processedData = { ...formData };
       
@@ -136,7 +136,7 @@ const DietQuestionnaire = ({ userData, healthMetrics, onSubmit }) => {
         cuisinePreferences: processedData.cuisinePreferences
       };
       
-      console.log("📋 Formatted data ready for backend:", dietInputData);
+      
     
       await onSubmit(dietInputData);
       

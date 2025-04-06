@@ -95,7 +95,7 @@ const AICoach = ({ userData, healthMetrics }) => {
         }
       };
       
-      console.log("Sending enhanced user data:", enhancedUserData);
+      
       
       const response = await sendChatMessage({
         message: inputMessage,

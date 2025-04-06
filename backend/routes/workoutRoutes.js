@@ -49,18 +49,18 @@ router.post("/gen", authenticateUser, async (req, res) => {
       userData.healthConditions = userData.health_conditions;
       userData.movementRestrictions = userData.movement_restrictions;
 
-      console.log("Normalized user data for workout plan:", userData);
+      // 
       
       // Generate the workout plan
       try {
         const prompt = generateWorkoutPlanPrompt(userData);
-        console.log("Generated prompt successfully");
+        // 
         
         const rawPlan = await generatePlanDirect(prompt); // Use generatePlanDirect
-        console.log("Received raw plan from OpenAI");
+        // 
         
         const formattedPlan = formatWorkoutPlan(rawPlan);
-        console.log("Formatted plan successfully");
+        // 
         
         // Store the generated plan
         await db.collection("workout_plans").doc(uid).set({
@@ -68,7 +68,7 @@ router.post("/gen", authenticateUser, async (req, res) => {
           created_at: FieldValue.serverTimestamp(), // Use FieldValue directly
           user_preferences: userData
         });
-        console.log("Saved workout plan to Firestore");
+        // 
         
         res.status(200).json({
           success: true,

@@ -13,7 +13,7 @@ const openai = new OpenAI({
 });
 
 // Check OpenAI API key
-console.log("OpenAI API Key available:", !!process.env.OPENAI_API_KEY);
+// 
 
 // Basic coach prompt function
 const generateCoachPrompt = (userData, messages, message) => {
@@ -126,7 +126,7 @@ router.post('/chat', authenticateUser, async (req, res) => {
       meal_plan: dietPlan.plan || dietPlan.meal_plan
     };
     
-    console.log("Combined user data profile:", JSON.stringify(combinedUserData, null, 2));
+    // );
     
     const prompt = generateCoachPrompt(combinedUserData, recentMessages, message);
     
@@ -169,7 +169,7 @@ router.post('/chat', authenticateUser, async (req, res) => {
       timestamp: new Date().toISOString() // Use ISO string instead of server timestamp for now
     };
     
-    console.log("Saving messages to Firestore");
+    // 
     
     // First check if the document exists
     const chatDocRef = db.collection('coach_chats').doc(uid);
@@ -189,7 +189,7 @@ router.post('/chat', authenticateUser, async (req, res) => {
       });
     }
     
-    console.log("Messages saved successfully");
+    // 
     
     // Return success with AI response
     return res.status(200).json({

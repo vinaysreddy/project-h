@@ -13,8 +13,8 @@ const HealthSummary = ({ userData, healthMetrics }) => {
   const goalProgress = 65; // In a real app, calculate based on starting point and current metrics
   
   // Debug log to diagnose the issue
-  console.log('HealthMetrics in HealthSummary:', healthMetrics);
-  console.log('BMI type:', typeof bmi, 'Value:', bmi);
+  
+  
   
   return (
     <Card>

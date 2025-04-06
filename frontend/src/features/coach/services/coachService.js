@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000';
-
+const API_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:3000' 
+    : 'https://project-h-ulkh.onrender.com');
 /**
  * Sends a chat message to the AI coach
  * @param {Object} data - Message data including userData and healthMetrics
@@ -10,13 +12,13 @@ const API_URL = 'http://localhost:3000';
  */
 export const sendChatMessage = async (data, token) => {
   try {
-    console.log('Sending message to AI coach:', data.message);
+    
     
     const response = await axios.post(`${API_URL}/coach/chat`, data, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('AI coach response:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('Error communicating with AI coach:', error);
@@ -31,13 +33,13 @@ export const sendChatMessage = async (data, token) => {
  */
 export const getChatHistory = async (token) => {
   try {
-    console.log('Fetching chat history');
+    
     
     const response = await axios.get(`${API_URL}/coach/history`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('Chat history retrieved:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('Error retrieving chat history:', error);

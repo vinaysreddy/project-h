@@ -6,14 +6,14 @@ const authenticateUser = async (req, res, next) => {
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            console.log("Missing or invalid authorization header");
+            // 
             return res.status(401).json({ message: "Unauthorized: No valid authorization header" });
         }
 
         const token = authHeader.split(" ")[1];
 
         if (!token) {
-            console.log("Token is empty");
+            // 
             return res.status(401).json({ message: "Unauthorized: Token not provided" });
         }
 
@@ -32,7 +32,7 @@ const authenticateUser = async (req, res, next) => {
                 req.authProvider = 'anonymous';
             }
 
-            console.log(`Token verified successfully for user: ${decodedToken.uid} (Provider: ${req.authProvider})`);
+            // `);
             next();
         } catch (verifyError) {
             console.error("Token verification failed:", verifyError);

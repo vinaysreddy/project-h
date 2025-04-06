@@ -40,13 +40,13 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
   // Check if user has existing diet preferences
   useEffect(() => {
     const checkDietPreferences = async () => {
-      console.log("🔄 Starting diet preferences check flow...");
+      
       try {
         setIsLoadingPreferences(true);
 
         // Get auth token
         const token = await getToken();
-        console.log("✅ Authentication token obtained");
+        
 
         if (!token) {
           console.error("❌ No auth token available");
@@ -54,33 +54,33 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
         }
 
         // Fetch user's diet data using the service function
-        console.log("🔄 Fetching user diet questionnaire data...");
+        
         const response = await getDietQuestionnaire(token);
-        console.log("📋 Diet questionnaire API response:", response);
+        
 
         // If we have diet data, store it
         if (response && response.data) {
-          console.log("✅ Diet preferences found in backend");
+          
           setDietPreferences(response.data);
           setShowQuestionnaire(false);
 
           // Also fetch the existing diet plan if available
           try {
-            console.log("🔄 Fetching existing diet plan...");
+            
             const dietPlanResponse = await getDietPlan(token);
-            console.log("📋 Diet plan response:", dietPlanResponse);
+            
 
             if (dietPlanResponse && dietPlanResponse.meal_plan) {
-              console.log("🔄 Transforming diet plan data...");
+              
               const formattedDietPlan = transformDietPlanData(dietPlanResponse);
-              console.log("📋 Formatted diet plan:", formattedDietPlan);
+              
               setDietPlan(formattedDietPlan);
             }
           } catch (planError) {
-            console.log("⚠️ No existing diet plan or error fetching it", planError);
+            
           }
         } else {
-          console.log("ℹ️ No diet preferences found, showing questionnaire");
+          
           setShowQuestionnaire(true);
         }
       } catch (error) {
@@ -109,7 +109,7 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
         throw new Error('Authentication required');
       }
 
-      console.log('Submitting diet preferences to backend:', preferencesData);
+      
 
       const completeData = {
         ...preferencesData,  // All the questionnaire data
@@ -126,15 +126,15 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
 
       // 1. Submit diet questionnaire
       const questionnaireResponse = await submitDietQuestionnaire(completeData, token);
-      console.log('Diet questionnaire submission response:', questionnaireResponse);
+      
 
       // 2. Generate diet plan - no need to send all the data again, backend will use stored questionnaire
       const dietPlanResponse = await generateDietPlan({}, token);
-      console.log('Diet plan generation response:', dietPlanResponse);
+      
 
       // 3. Get the generated plan
       const planResponse = await getDietPlan(token);
-      console.log('Diet plan retrieval response:', planResponse);
+      
 
       // Format the data using the utility function
       if (planResponse && planResponse.meal_plan) {
