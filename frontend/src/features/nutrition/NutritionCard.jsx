@@ -294,65 +294,33 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
       <Card className="overflow-hidden">
         <div className="h-2 bg-[#3E7B27] w-full"></div>
         <CardHeader className="pb-2">
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-lg font-bold flex items-center">
-                <Apple className="h-5 w-5 mr-2 text-[#3E7B27]" />
-                Nutrition Overview
-              </CardTitle>
-              <CardDescription>
-                Daily nutrition targets based on your goals
-              </CardDescription>
-            </div>
-            <Badge className="bg-[#3E7B27]">Active Plan</Badge>
-          </div>
+          <CardTitle className="text-lg font-bold flex items-center">
+            <Apple className="h-5 w-5 mr-2 text-[#3E7B27]" />
+            Nutrition Targets
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Daily Target</span>
-                <span className="font-bold">{calorieTarget} calories</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Maintenance</span>
-                <span>{tdee} calories</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Today's Plan</span>
-                <span>{dailyTotals.calories} calories</span>
-              </div>
-              <Progress value={caloriePercentage} className="h-2 mt-2">
-                <div className="h-full bg-[#3E7B27] rounded-full"></div>
-              </Progress>
-              <p className="text-xs text-right text-muted-foreground">
-                {caloriePercentage}% of daily target
-              </p>
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="font-medium">Daily Calorie Target</h3>
+              <span className="text-xl font-bold">{calorieTarget} calories</span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            <div className="bg-blue-50 rounded-lg p-3 text-center">
+              <h4 className="text-sm font-medium text-blue-800 mb-1">Protein</h4>
+              <div className="text-lg font-bold">{Math.round(dailyTotals.protein || 0)}g</div>
             </div>
             
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium mb-1">Macronutrient Targets</h4>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="p-2 bg-blue-50 rounded-lg text-center">
-                  <p className="text-xs text-gray-500">Protein</p>
-                  <p className="font-bold">{macros.protein}%</p>
-                  <p className="text-xs">{Math.round(dailyTotals.protein || 0)}g</p>
-                </div>
-                <div className="p-2 bg-green-50 rounded-lg text-center">
-                  <p className="text-xs text-gray-500">Carbs</p>
-                  <p className="font-bold">{macros.carbs}%</p>
-                  <p className="text-xs">{Math.round(dailyTotals.carbs || 0)}g</p>
-                </div>
-                <div className="p-2 bg-yellow-50 rounded-lg text-center">
-                  <p className="text-xs text-gray-500">Fat</p>
-                  <p className="font-bold">{macros.fat}%</p>
-                  <p className="text-xs">{Math.round(dailyTotals.fat || dailyTotals.fats || 0)}g</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                <Info className="h-3 w-3" />
-                <span>Based on your weight and activity level</span>
-              </div>
+            <div className="bg-green-50 rounded-lg p-3 text-center">
+              <h4 className="text-sm font-medium text-green-800 mb-1">Carbs</h4>
+              <div className="text-lg font-bold">{Math.round(dailyTotals.carbs || 0)}g</div>
+            </div>
+            
+            <div className="bg-yellow-50 rounded-lg p-3 text-center">
+              <h4 className="text-sm font-medium text-yellow-800 mb-1">Fat</h4>
+              <div className="text-lg font-bold">{Math.round(dailyTotals.fat || dailyTotals.fats || 0)}g</div>
             </div>
           </div>
         </CardContent>
@@ -551,12 +519,6 @@ const NutritionCard = ({ userData = {}, healthMetrics = {} }) => {
             ))}
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <div className="text-sm text-muted-foreground">
-            <CircleEllipsis className="h-4 w-4 inline mr-1" />
-            Adjust your meals as needed based on preferences and availability
-          </div>
-        </CardFooter>
       </Card>
     </div>
   );

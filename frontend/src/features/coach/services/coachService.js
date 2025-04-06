@@ -11,22 +11,7 @@ const API_URL = 'http://localhost:3000';
  */
 export const sendChatMessage = async (data, token) => {
   try {
-    console.log('Sending message to AI coach:', data);
-    
-    // Check if we're in development and want to use a mock response
-    if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_MOCK_AI === 'true') {
-      // Generate a realistic delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Create a mock response based on the user's message and context
-      const mockResponse = generateMockResponse(data.message, data.context, data.userData);
-      
-      return {
-        id: uuidv4(),
-        message: mockResponse,
-        timestamp: new Date()
-      };
-    }
+    console.log('Sending message to AI coach:', data.message);
     
     const response = await axios.post(`${API_URL}/coach/chat`, data, {
       headers: { 'Authorization': `Bearer ${token}` }

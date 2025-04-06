@@ -103,7 +103,7 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
               <div className="bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full flex items-center shadow-sm">
                 <Sparkles className="inline h-3 w-3 mr-1 text-amber-500" />
                 <span className="text-xs font-medium bg-gradient-to-r from-indigo-600 to-purple-600 inline-block text-transparent bg-clip-text">
-                  AI Coach
+                Your Personalized AI Health &amp; Fitness Coach
                 </span>
               </div>
             </div>
@@ -126,16 +126,6 @@ const DynamicAISummary = ({ userData, healthMetrics, activeTab, onChatOpen }) =>
               ) : (
                 <p className="text-gray-700 leading-relaxed">{summary || getFallbackSummary()}</p>
               )}
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onChatOpen}
-                className="mt-3.5 bg-white/70 backdrop-blur-sm hover:bg-white/90 border-none text-gray-700 hover:text-gray-900 shadow-sm"
-              >
-                <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
-                Talk with Oats
-              </Button>
             </div>
           </div>
         </div>

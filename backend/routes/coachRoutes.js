@@ -126,25 +126,25 @@ router.post('/chat', authenticateUser, async (req, res) => {
       meal_plan: dietPlan.plan || dietPlan.meal_plan
     };
     
-    console.log("Combined user data profile:", JSON.stringify(combinedUserData, null, 2));
-    
     const prompt = generateCoachPrompt(combinedUserData, recentMessages, message);
     
     // Call OpenAI API with system message explicitly including profile context
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Use the latest model version
+      model: "gpt-4o", // Using the full model for better personalization
       messages: [
         {
           role: "system",
-          content: "You are a personalized health coach with full access to the user's profile data. IMPORTANT: When users ask about their health status, always refer to their specific BMI, weight, activity level, sleep hours and other profile data when responding. Never give generic responses when specific user data is available."
+          content: "You are Oats, a personalized AI health coach. Write only in plain text without any Markdown formatting symbols (no **, ##, *, -, or numbered lists). Keep responses under 150 words, focus on the user's specific metrics, and provide advice in natural conversational paragraphs."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 500
+      temperature: 0.7, // Slightly higher for more personalization while maintaining focus
+      max_tokens: 250, // Allow enough tokens for personalized content
+      presence_penalty: 0.3,
+      frequency_penalty: 0.3
     });
     
     // Extract response

@@ -1,31 +1,81 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Bot, User, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { 
+  Send, 
+  Bot, 
+  User, 
+  ChevronDown, 
+  ChevronUp, 
+  RefreshCw, 
+  ClipboardCopy,
+  Sparkles,
+  X,
+  ThumbsUp,
+  ThumbsDown,
+  Loader2
+} from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { sendChatMessage, getChatHistory } from './services/coachService';
-// Import health calculation functions from your utility file
 import * as calculations from '@/utils/healthMetricsCalculator';
 
-const AICoach = ({ userData, healthMetrics }) => {
+const AICoach = ({ userData, healthMetrics, contextHint, hideHeader = true, fixedHeight = false }) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [showFullHistory, setShowFullHistory] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
   const { getToken } = useAuth();
   
-  // Load chat history on component mount
+  // Common suggested prompts that are always available
+  const commonPrompts = [
+    "What should I eat today based on my goals?",
+    "How can I improve my BMI?",
+    "Suggest a quick workout for me"
+  ];
+  
+  // Context-specific prompts (not shown directly but used as a pool for rotation)
+  const contextPrompts = {
+    home: [
+      "How do my health metrics look?",
+      "What are realistic goals for me?",
+      "Tips to stay motivated"
+    ],
+    nutrition: [
+      "Create a meal plan for my macros",
+      "How can I reduce sugar intake?",
+      "Foods to build muscle"
+    ],
+    fitness: [
+      "Design a workout for upper body",
+      "Best cardio exercises for me",
+      "Recovery tips after workouts"
+    ]
+  };
+  
+  // Use common prompts as default
+  const suggestedPrompts = commonPrompts;
+  
   useEffect(() => {
     loadChatHistory();
   }, []);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  // Focus input when component loads
+  useEffect(() => {
+    if (inputRef.current && !hideHeader) {
+      setTimeout(() => inputRef.current.focus(), 300);
+    }
+  }, [hideHeader]);
 
   const loadChatHistory = async () => {
     try {
@@ -40,7 +90,7 @@ const AICoach = ({ userData, healthMetrics }) => {
         setMessages([{
           id: 'welcome',
           role: 'assistant',
-          content: `Hi there! I'm your AI health coach. Based on your profile, I can help with personalized advice for your ${userData.primaryGoal || 'fitness'} goals. How can I assist you today?`,
+          content: `👋 Hi there! I'm your AI health coach. Based on your profile, I can help with personalized advice for your ${userData.primaryGoal || 'fitness'} goals. How can I assist you today?`,
           timestamp: new Date()
         }]);
       }
@@ -56,16 +106,16 @@ const AICoach = ({ userData, healthMetrics }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  const handleSendMessage = async (text = inputMessage) => {
+    if ((!text.trim() && !inputMessage.trim()) || isLoading) return;
     
-    // Clear any previous errors
+    const messageToSend = text.trim() || inputMessage.trim();
     setError(null);
     
     const userMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: inputMessage,
+      content: messageToSend,
       timestamp: new Date()
     };
     
@@ -79,7 +129,6 @@ const AICoach = ({ userData, healthMetrics }) => {
       // Create a clean copy of user data with all available metrics
       const enhancedUserData = {
         ...userData,
-        // Make sure these fields exist as they are critical for personalization
         bmi: userData?.bmi || userData?.healthMetrics?.bmi || 
           calculations.calculateBMI(userData?.height, userData?.weight, 'cm', 'kg'),
         bmiCategory: userData?.bmiCategory || 
@@ -95,10 +144,8 @@ const AICoach = ({ userData, healthMetrics }) => {
         }
       };
       
-      console.log("Sending enhanced user data:", enhancedUserData);
-      
       const response = await sendChatMessage({
-        message: inputMessage,
+        message: messageToSend,
         userData: enhancedUserData,
         healthMetrics: enhancedUserData.healthMetrics || {}
       }, token);
@@ -116,7 +163,6 @@ const AICoach = ({ userData, healthMetrics }) => {
     } catch (err) {
       console.error('Error sending message:', err);
       
-      // Add error message to chat
       setMessages(prev => [...prev, {
         id: 'error-' + Date.now(),
         role: 'system',
@@ -130,82 +176,114 @@ const AICoach = ({ userData, healthMetrics }) => {
       setError('Failed to get response from coach. Please try again.');
     } finally {
       setIsLoading(false);
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     }
   };
 
-  // Display messages with appropriate styling
-  const displayMessages = showFullHistory 
-    ? messages 
-    : messages.slice(-4); // Show only recent messages if not expanded
+  const copyToClipboard = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   return (
-    <Card className="h-[600px] flex flex-col">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center">
-          <Bot className="h-5 w-5 mr-2 text-[#4D55CC]" />
-          AI Health Coach
-        </CardTitle>
-        <CardDescription>
-          Get personalized health and fitness advice
-        </CardDescription>
-      </CardHeader>
+    <Card className="flex flex-col shadow-lg border-gray-200">
+      {!hideHeader && (
+        <div className="bg-gradient-to-r from-[#4D55CC]/90 to-[#4D55CC] text-white p-4 flex items-center justify-between rounded-t-lg">
+          <div className="flex items-center">
+            <div className="bg-white/20 p-1.5 rounded-lg mr-3">
+              <Bot className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-medium">AI Health Coach</h3>
+              <p className="text-xs text-white/80">Powered by advanced AI</p>
+            </div>
+          </div>
+          <Badge variant="outline" className="bg-white/10 text-white border-white/20 hover:bg-white/20">
+            <Sparkles className="h-3 w-3 mr-1" /> 
+            Premium
+          </Badge>
+        </div>
+      )}
       
-      <CardContent className="flex-1 flex flex-col h-full p-4">
-        {/* Chat messages container */}
-        <div className="flex-1 overflow-y-auto mb-4 space-y-4">
-          {messages.length > 4 && !showFullHistory && (
-            <div className="text-center">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowFullHistory(true)}
-                className="text-xs text-gray-500"
-              >
-                <ChevronUp className="h-3 w-3 mr-1" />
-                Show previous messages
-              </Button>
-            </div>
-          )}
-          
-          {showFullHistory && messages.length > 4 && (
-            <div className="text-center">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowFullHistory(false)}
-                className="text-xs text-gray-500"
-              >
-                <ChevronDown className="h-3 w-3 mr-1" />
-                Show recent messages
-              </Button>
-            </div>
-          )}
-          
-          {displayMessages.map((msg) => (
+      <CardContent className={`flex-1 flex flex-col ${hideHeader ? 'pt-4' : 'pt-3'} px-0 pb-0`}>
+        {/* Chat history section with fixed height */}
+        <div 
+          className={`flex-1 overflow-y-auto px-4 space-y-4 ${
+            fixedHeight ? 'h-[400px] max-h-[400px]' : ''
+          }`}
+        >
+          {messages.map((msg) => (
             <div 
               key={msg.id} 
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`group flex relative ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div 
-                className={`max-w-[80%] rounded-lg p-3 ${
+                className={`max-w-[85%] rounded-2xl p-3.5 ${
                   msg.role === 'user' 
-                    ? 'bg-gray-200 text-gray-800 rounded-tr-none' 
+                    ? 'bg-[#4D55CC] text-white rounded-tr-none' 
                     : msg.error 
                       ? 'bg-red-50 text-red-600 border border-red-200 rounded-tl-none'
-                      : 'bg-[#4D55CC]/10 text-gray-700 rounded-tl-none'
+                      : 'bg-gray-100 text-gray-800 rounded-tl-none'
                 }`}
               >
-                <div className="flex items-center mb-1">
-                  {msg.role === 'user' ? (
-                    <User className="h-3 w-3 mr-1 text-gray-600" />
-                  ) : (
-                    <Bot className="h-3 w-3 mr-1 text-[#4D55CC]" />
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center">
+                    {msg.role === 'user' ? (
+                      <User className="h-3 w-3 mr-1 text-white" />
+                    ) : (
+                      <Bot className="h-3 w-3 mr-1 text-[#4D55CC]" />
+                    )}
+                    <span className={`text-xs ${msg.role === 'user' ? 'text-white/80' : 'text-gray-500'}`}>
+                      {msg.role === 'user' ? 'You' : 'Coach'} • {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                  </div>
+                  
+                  {/* Copy button appears on hover for coach messages */}
+                  {msg.role === 'assistant' && (
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-5 w-5 rounded-full hover:bg-gray-200"
+                              onClick={() => copyToClipboard(msg.content, msg.id)}
+                            >
+                              {copiedId === msg.id ? (
+                                <span className="text-emerald-500 text-xs">Copied!</span>
+                              ) : (
+                                <ClipboardCopy className="h-3 w-3 text-gray-500" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Copy to clipboard</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   )}
-                  <span className="text-xs text-gray-500">
-                    {msg.role === 'user' ? 'You' : 'Coach'} • {new Date(msg.timestamp).toLocaleTimeString()}
-                  </span>
                 </div>
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                
+                {/* Feedback buttons for coach messages */}
+                {msg.role === 'assistant' && !msg.error && (
+                  <div className="mt-2 pt-1 border-t border-gray-200 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-full hover:bg-gray-200">
+                        <ThumbsUp className="h-3 w-3 text-gray-500" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-full hover:bg-gray-200">
+                        <ThumbsDown className="h-3 w-3 text-gray-500" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -213,15 +291,14 @@ const AICoach = ({ userData, healthMetrics }) => {
           {/* Loading indicator */}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-[#4D55CC]/10 text-gray-700 rounded-lg rounded-tl-none p-3 max-w-[80%]">
+              <div className="bg-gray-100 text-gray-800 rounded-2xl rounded-tl-none p-3.5 max-w-[80%]">
                 <div className="flex items-center mb-1">
                   <Bot className="h-3 w-3 mr-1 text-[#4D55CC]" />
                   <span className="text-xs text-gray-500">Coach</span>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce"></div>
-                  <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                <div className="flex items-center space-x-1 py-2">
+                  <Loader2 className="h-4 w-4 text-[#4D55CC] animate-spin" />
+                  <p className="text-sm text-gray-500">Generating response...</p>
                 </div>
               </div>
             </div>
@@ -229,32 +306,75 @@ const AICoach = ({ userData, healthMetrics }) => {
           
           <div ref={messagesEndRef} />
         </div>
+      </CardContent>
+      
+      {/* Always visible suggested prompts */}
+      <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+        <p className="text-xs text-gray-500 mb-2">Quick questions:</p>
+        <div className="flex flex-wrap gap-2">
+          {suggestedPrompts.map((prompt, index) => (
+            <Button
+              key={index}
+              variant="outline"
+              size="sm"
+              className="text-xs py-1 px-2 h-auto border-gray-200 bg-white hover:bg-gray-50 rounded-full"
+              onClick={() => handleSendMessage(prompt)}
+            >
+              {prompt}
+            </Button>
+          ))}
+        </div>
+      </div>
+      
+      <CardFooter className="border-t p-3">
+        {error && (
+          <div className="absolute -top-8 left-0 right-0 bg-red-50 border-y border-red-200 p-1.5 text-center">
+            <p className="text-red-600 text-xs flex items-center justify-center">
+              {error} 
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={loadChatHistory} 
+                className="ml-2 p-0 h-6 text-xs text-red-700 hover:bg-red-100"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" /> Retry
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setError(null)}
+                className="ml-2 p-0 h-6 text-xs"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </p>
+          </div>
+        )}
         
-        {/* Input area */}
-        <div className="flex items-center border-t pt-3">
+        <form 
+          className="w-full flex items-center gap-2" 
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSendMessage();
+          }}
+        >
           <Input
+            ref={inputRef}
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="Ask your health coach anything..."
-            className="flex-1 mr-2"
+            className="flex-1 border-gray-200 focus-visible:ring-[#4D55CC]/30"
             disabled={isLoading}
           />
           <Button 
-            onClick={handleSendMessage} 
+            type="submit"
             disabled={!inputMessage.trim() || isLoading}
-            className="bg-[#4D55CC] hover:bg-[#394099]"
+            className="bg-[#4D55CC] hover:bg-[#394099] text-white rounded-full w-9 h-9 p-0"
           >
             <Send className="h-4 w-4" />
           </Button>
-        </div>
-        
-        {error && (
-          <p className="text-red-500 text-xs mt-2">
-            {error} <Button variant="link" className="p-0 h-auto text-xs" onClick={loadChatHistory}><RefreshCw className="h-3 w-3 mr-1" /> Retry</Button>
-          </p>
-        )}
-      </CardContent>
+        </form>
+      </CardFooter>
     </Card>
   );
 };
